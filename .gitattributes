@@ -1,0 +1,2 @@
+data/query/exome/HG002.hard-filtered.gvcf.gz filter=lfs diff=lfs merge=lfs -text
+data/query/exome/HG002.hard-filtered.vcf.gz filter=lfs diff=lfs merge=lfs -text
