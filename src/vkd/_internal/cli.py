@@ -13,15 +13,17 @@
 from __future__ import annotations
 
 import argparse
+import inspect
 import os
 import pathlib
 import sys
+import tempfile
 import typing
-import inspect
 
 # 3rd party import
 import streamlit
-import polars
+import streamlit.web
+import streamlit.web.bootstrap
 
 # project import
 from vkd._internal import debug
@@ -108,21 +110,15 @@ def merge(opts: argparse.Namespace) -> int:
 
 def serve(opts: argparse.Namespace) -> int:
     """Write a streamlit script in stdout."""
+    temp_dir = tempfile.TemporaryDirectory()
+    temp_file_path = os.path.join(temp_dir.name, 'app.py')
 
-    lines = inspect.getsource(_serve)
-    print(lines)
+    with open(temp_file_path, "w") as fh:
+        print(f"""import vkd
 
+vkd.streamlit.main("{opts.input_path}")
+""", file=fh)
 
-def _serve():
-
-
-    df = polars.read_parquet(opts.input_path)
-
-    streamlit.web.cli.main_run(["cli.py"])
-
-    streamlit.title("Variant Knowledge Dashboard")
-    streamlit.line_chart(df)
-
-    print(streamlit)
+    streamlit.web.bootstrap.run(temp_file_path, False, [], [])
 
     return 0

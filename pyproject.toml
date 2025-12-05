@@ -30,7 +30,7 @@ classifiers = [
 ]
 dependencies = [
 	     "polars",
-	     "streamlit",
+	     "streamlit==1.50",
 	     "xopen",
 ]
 
