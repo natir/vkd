@@ -6,18 +6,25 @@ import "tasks/normalize_variant.wdl"
 
 task vcf_compare2parquet {
   input {
-    VcfWithIndex truth
-    VcfWithIndex query
-    VcfCompareOutput result
-    String version
+    Array[File] truth
+    Array[File] query
+    Array[File] truth_label
+    Array[File] query_label
+    Array[String] version
   }
 
+  String versions = sep(" ", prefix("-n ", version))
+  String truths = sep(" ", prefix("-t ", truth))
+  String querys = sep(" ", prefix("-q ", query))
+  String truths_label = sep(" ", prefix("-T ", truth_label))
+  String querys_label = sep(" ", prefix("-Q ", query_label))
+
   command <<<
-    vkd -s ~{result.summary} -t ~{truth.vcf} -T ~{result.truth} -q ~{query.vcf} -Q ~{result.query} -o ~{version}.parquet
+    vkd ~{versions} ~{truths} ~{truths_label} ~{querys} ~{querys_label} -o merge.parquet
   >>>
 
   output {
-    File dataframe = "~{version}.parquet"
+    File dataframe = "merge.parquet"
   }
 
   requirements {
@@ -73,15 +80,22 @@ workflow vkd {
       output_name = dataset_path.left,
     }
 
-    call vcf_compare2parquet { input:
-      truth = gstd.result,
-      query = query.result,
-      result = compare_to_gold.result,
-      version = dataset_path.left
-    }
+    String version_ = dataset_path.left
+    File truth_vcf = gstd.result.vcf
+    File query_vcf = query.result.vcf
+    File query_vcf_label = compare_to_gold.result.truth
+    File truth_vcf_label = compare_to_gold.result.query
   }
 
+  call vcf_compare2parquet { input:
+      truth = truth_vcf,
+      query = query_vcf,
+      truth_label = truth_vcf_label,
+      query_label = query_vcf_label,
+      version = version_,
+    }
+
   output {
-    Array[File] summary = vcf_compare2parquet.dataframe
+    File summary = vcf_compare2parquet.dataframe
   }
 }
