@@ -8,3 +8,10 @@ vkd.query_vcf_uri:
   v4.2.2: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/AshkenazimTrio/HG004_NA24143_mother/NISTv4.2.1/GRCh38/HG004_GRCh38_1_22_v4.2.1_benchmark.vcf.gz
 
 vkd.reference_uri: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh38/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.gz
+
+vkd.clinvar_version: 20251201
+vkd.run_snpeff: false
+vkd.run_vep: false
+
+#vkd.compare_tool: "hap.py" # Hap.py docker seems not work
+vkd.compare_tool: "aardvark"

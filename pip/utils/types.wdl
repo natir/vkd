@@ -10,3 +10,8 @@ struct VcfWithIndex {
   File vcf
   File tbi
 }
+
+struct FastaWithIndex {
+  File fasta
+  File fai
+}

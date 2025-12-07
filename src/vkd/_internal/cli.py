@@ -76,26 +76,10 @@ def get_parser() -> argparse.ArgumentParser:
         action="append",
     )
     merge_parser.add_argument(
-        "-t",
-        "--truth-path",
-        type=pathlib.Path,
-        help="Path to truth vcf",
-        required=True,
-        action="append",
-    )
-    merge_parser.add_argument(
         "-q",
         "--query-path",
         type=pathlib.Path,
         help="Path to query vcf",
-        required=True,
-        action="append",
-    )
-    merge_parser.add_argument(
-        "-T",
-        "--truth-path-labeled",
-        type=pathlib.Path,
-        help="Path to truth vcf labeled",
         required=True,
         action="append",
     )
@@ -106,6 +90,27 @@ def get_parser() -> argparse.ArgumentParser:
         help="Path to query vcf labeled",
         required=True,
         action="append",
+    )
+    merge_parser.add_argument(
+        "-c",
+        "--clinvar-path",
+        type=pathlib.Path,
+        help="Path to clinvar annotation",
+        required=False,
+    )
+    merge_parser.add_argument(
+        "-s",
+        "--snpeff-path",
+        type=pathlib.Path,
+        help="Path to snpeff annotation",
+        required=False,
+    )
+    merge_parser.add_argument(
+        "-v",
+        "--vep-path",
+        type=pathlib.Path,
+        help="Path to vep annotation",
+        required=False,
     )
     merge_parser.add_argument(
         "-o",
@@ -170,24 +175,15 @@ def merge(opts: argparse.Namespace) -> int:
 
     for name, truth, truth_label, query, query_label in zip(
         opts.name_dataset,
-        opts.truth_path,
-        opts.truth_path_labeled,
         opts.query_path,
         opts.truth_path_labeled,
     ):
-        truth_lf = reader.vcf2lazyframe(truth)
-        truth_label_lf = reader.vcf2lazyframe(truth_label)
-        truth_lf = truth_lf.join(truth_label_lf, on=["chr", "position", "ref", "alt"])
-
         query_lf = reader.vcf2lazyframe(query)
         query_label_lf = reader.vcf2lazyframe(query_label)
         query_lf = query_lf.join(query_label_lf, on=["chr", "position", "ref", "alt"])
 
-        final = query_lf.join(
-            truth_lf,
-            on=["chr", "position", "ref", "alt"],
-            suffix="_truth",
-        ).with_columns(dataset=polars.lit(name))
+        final = query_lf.with_columns(dataset=polars.lit(name))
+
         if len(column_set) == 0:
             column_set = set(zip(final.columns, final.dtypes))
         else:
