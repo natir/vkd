@@ -7,16 +7,16 @@ task snpeff {
   }
 
   command <<<
-    snpEff ann -noStats hg38 ~{vcf} > ~{dataset_name}_snpeff.vcf
+    snpEff -Xms512m -Xmx8g ann -noStats hg38 ~{vcf} | gzip -1 - > ~{dataset_name}_snpeff.vcf.gz
   >>>
 
   output {
-    File annotated = dataset_name+"_snpeff.vcf"
+    File annotated = dataset_name+"_snpeff.vcf.gz"
   }
 
   requirements {
     container: "quay.io/biocontainers/snpeff:5.3.0a--hdfd78af_1"
-    cpu: 4
+    cpu: 1
   }
 }
 
@@ -27,15 +27,15 @@ task vep {
   }
 
   command <<<
-    vep -i ~{vcf} --vcf --vcf_info_field ANN -o ~{dataset_name}_vep.vcf
+    vep -i ~{vcf} --fork 4 --vcf --vcf_info_field ANN --database --species homo_sapiens --compress_output gzip -o ~{dataset_name}_vep.vcf.gz
   >>>
 
   output {
-    File annotated = dataset_name+"_vep.vcf"
+    File annotated = dataset_name+"_vep.vcf.gz"
   }
 
   requirements {
-    container: "quay.io/biocontainers/vep:115.2--pl5321h2a3209d_1"
+    container: "ensemblorg/ensembl-vep:latest"
     cpu: 4
   }
 }

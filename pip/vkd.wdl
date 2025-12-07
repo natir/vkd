@@ -3,7 +3,7 @@ version 1.2
 import "tasks/annotate.wdl"
 import "tasks/compare.wdl"
 import "tasks/download.wdl"
-import "tasks/normalize_variant.wdl"
+import "tasks/normalize.wdl"
 
 workflow vkd {
     input {
@@ -40,7 +40,7 @@ workflow vkd {
         path = "reference.fasta.gz",
     }
 
-    call normalize_variant.normalize_variant as gstd { input:
+    call normalize.variant as gstd { input:
         vcf_path = dl_gstd.result.vcf,
         reference_path = dl_reference.result.fasta,
     }
@@ -51,7 +51,7 @@ workflow vkd {
             path = dataset_path.left + ".vcf.gz",
         }
 
-        call normalize_variant.normalize_variant as query { input:
+        call normalize.variant as query { input:
             vcf_path = dl_query.result.vcf,
             reference_path = dl_reference.result.fasta,
         }

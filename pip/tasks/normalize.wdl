@@ -2,7 +2,7 @@ version 1.2
 
 import "../utils/types.wdl"
 
-task normalize_variant {
+task variant {
   input {
     File vcf_path
     File reference_path
