@@ -173,9 +173,9 @@ def merge(opts: argparse.Namespace) -> int:
     """Perform a merge of pipeline output."""
     lfs = []
 
-    column_set: set[tuple[str, polars.DataType]]= set()
+    column_set: set[tuple[str, polars.DataType]] = set()
 
-    for name, truth, truth_label, query, query_label in zip(
+    for name, query, query_label in zip(
         opts.name_dataset,
         opts.query_path,
         opts.truth_path_labeled,

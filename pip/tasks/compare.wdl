@@ -70,9 +70,9 @@ task merge {
     String querys = sep(" ", prefix("-q ", query))
     String querys_label = sep(" ", prefix("-Q ", query_label))
 
-    String clinvar_path = if defined(clinvar) then " -c "+clinvar else ""
-    String snpeff_path = if defined(snpeff) then " -s "+snpeff else ""
-    String vep_path = if defined(vep) then " -v "+vep else ""
+    String clinvar_path = if defined(clinvar) then " -c "+select_first([clinvar]) else ""
+    String snpeff_path = if defined(snpeff) then " -s "+select_first([snpeff]) else ""
+    String vep_path = if defined(vep) then " -v "+select_first([vep]) else ""
 
     command <<<
         vkd --threads 8 merge ~{versions} ~{querys} ~{querys_label} ~{clinvar_path} ~{snpeff_path} ~{vep_path} -o merge.parquet

@@ -23,7 +23,6 @@ if typing.TYPE_CHECKING:
     # project import
 
 
-
 def main(enable_pages: list[str]) -> None:
     """Streamlit main page."""
     altair.data_transformers.disable_max_rows()

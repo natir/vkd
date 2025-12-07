@@ -91,7 +91,7 @@ workflow vkd {
             }
         }
 
-        File query_vcf = happy.result.query
+        File query_vcf = query.result.vcf
         File query_vcf_label = if compare_tool == "hap.py" then happy.result.truth else aardvark.result.truth
         String version_ = dataset_path.left
     }
