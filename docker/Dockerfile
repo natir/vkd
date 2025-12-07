@@ -18,3 +18,5 @@ RUN apt purge -y python3-maturin
 RUN apt auto-remove -y
 RUN apt clean -y
 RUN rm /root/.cache/uv -rf
+RUN rm /var/* -rf
+RUN rm /usr/share/* -rf
