@@ -133,7 +133,7 @@ def variant_length(df: polars.DataFrame) -> altair.Chart:
         .mark_line()
         .encode(
             altair.X("variant_length"),
-            altair.Y("len"),
+            altair.Y("len").scale(type="log"),
             altair.Color("format_bd"),
         )
     )
