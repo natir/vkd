@@ -5,14 +5,16 @@ WORKDIR /app
 
 RUN apt update
 RUN apt upgrade
-
-RUN apt install -y bash
+RUN apt install -y python3
 RUN apt install -y git
 RUN apt install -y python3-maturin
-RUN apt install -y cargo
 
+ADD "https://api.github.com/repos/natir/vkd/commits?per_page=1" latest_commit
 RUN uv pip install --break-system-packages --system git+https://github.com/natir/vkd
 
-RUN apt remove -y git
-RUN apt remove -y python3-maturin
-RUN apt remove -y cargo
+# Remove build dependency
+RUN apt purge -y git
+RUN apt purge -y python3-maturin
+RUN apt auto-remove -y
+RUN apt clean -y
+RUN rm /root/.cache/uv -rf

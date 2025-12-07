@@ -160,7 +160,8 @@ def merge(opts: argparse.Namespace) -> int:
     """Perform a merge of pipeline output."""
     lfs = []
 
-    print(opts)
+    column_set = {}
+
     for name, truth, truth_label, query, query_label in zip(
         opts.name_dataset,
         opts.truth_path,
@@ -168,7 +169,6 @@ def merge(opts: argparse.Namespace) -> int:
         opts.query_path,
         opts.truth_path_labeled,
     ):
-        print(f"dataset readed {name}")
         truth_lf = reader.vcf2lazyframe(truth)
         truth_label_lf = reader.vcf2lazyframe(truth_label)
         truth_lf = truth_lf.join(truth_label_lf, on=["chr", "position", "ref", "alt"])
@@ -182,10 +182,14 @@ def merge(opts: argparse.Namespace) -> int:
             on=["chr", "position", "ref", "alt"],
             suffix="_truth",
         ).with_columns(dataset=polars.lit(name))
+        if len(column_set) == 0:
+            column_set = set(zip(final.columns, final.dtypes))
+        else:
+            column_set &= set(zip(final.columns, final.dtypes))
 
         lfs.append(final)
 
-    polars.concat(lfs).sink_parquet(opts.output_path)
+    polars.concat([lf.select([n for (n, t) in column_set]) for lf in lfs]).sink_parquet(opts.output_path)
 
     return 0
 
