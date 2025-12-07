@@ -73,7 +73,7 @@ def get_parser() -> argparse.ArgumentParser:
         type=str,
         help="Name of dataset",
         required=True,
-        nargs="+",
+        action="append",
     )
     merge_parser.add_argument(
         "-t",
@@ -81,7 +81,7 @@ def get_parser() -> argparse.ArgumentParser:
         type=pathlib.Path,
         help="Path to truth vcf",
         required=True,
-        nargs="+",
+        action="append",
     )
     merge_parser.add_argument(
         "-q",
@@ -89,7 +89,8 @@ def get_parser() -> argparse.ArgumentParser:
         type=pathlib.Path,
         help="Path to query vcf",
         required=True,
-        nargs="+",
+        action="append",
+
     )
     merge_parser.add_argument(
         "-T",
@@ -97,7 +98,7 @@ def get_parser() -> argparse.ArgumentParser:
         type=pathlib.Path,
         help="Path to truth vcf labeled",
         required=True,
-        nargs="+",
+        action="append",
     )
     merge_parser.add_argument(
         "-Q",
@@ -105,7 +106,7 @@ def get_parser() -> argparse.ArgumentParser:
         type=pathlib.Path,
         help="Path to query vcf labeled",
         required=True,
-        nargs="+",
+        action="append",
     )
     merge_parser.add_argument(
         "-o",
@@ -148,12 +149,18 @@ def main(args: list[str] | None = None) -> int:
 
     os.environ["POLARS_MAX_THREADS"] = str(opts.threads)
 
+    if "func" not in opts:
+        parser.print_help(sys.stderr)
+        return 0
+
     return opts.func(opts)
 
 
 def merge(opts: argparse.Namespace) -> int:
     """Perform a merge of pipeline output."""
     lfs = []
+
+    print(opts)
     for name, truth, truth_label, query, query_label in zip(
         opts.name_dataset,
         opts.truth_path,
@@ -161,16 +168,13 @@ def merge(opts: argparse.Namespace) -> int:
         opts.query_path,
         opts.truth_path_labeled,
     ):
+        print(f"dataset readed {name}")
         truth_lf = reader.vcf2lazyframe(truth)
-        truth_label_lf = reader.vcf2lazyframe(truth_label).with_columns(
-            dataset=polars.lit(name),
-        )
+        truth_label_lf = reader.vcf2lazyframe(truth_label)
         truth_lf = truth_lf.join(truth_label_lf, on=["chr", "position", "ref", "alt"])
 
         query_lf = reader.vcf2lazyframe(query)
-        query_label_lf = reader.vcf2lazyframe(query_label).with_columns(
-            dataset=polars.lit(name),
-        )
+        query_label_lf = reader.vcf2lazyframe(query_label)
         query_lf = query_lf.join(query_label_lf, on=["chr", "position", "ref", "alt"])
 
         final = query_lf.join(

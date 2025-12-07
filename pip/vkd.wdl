@@ -20,7 +20,7 @@ task vcf_compare2parquet {
   String querys_label = sep(" ", prefix("-Q ", query_label))
 
   command <<<
-    vkd ~{versions} ~{truths} ~{truths_label} ~{querys} ~{querys_label} -o merge.parquet
+    vkd --threads 8 merge ~{versions} ~{truths} ~{truths_label} ~{querys} ~{querys_label} -o merge.parquet
   >>>
 
   output {
@@ -29,7 +29,7 @@ task vcf_compare2parquet {
 
   requirements {
     container: "vkd/latest"
-    cpu: 4
+    cpu: 8
   }
 }
 
