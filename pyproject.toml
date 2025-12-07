@@ -30,8 +30,12 @@ classifiers = [
 ]
 dependencies = [
 	     "polars",
-	     "streamlit==1.50",
 	     "xopen",
+]
+
+[project.optional-dependencies]
+web = [
+    "streamlit==1.50"
 ]
 
 [project.urls]

@@ -13,6 +13,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib
 import inspect
 import os
 import pathlib
@@ -178,7 +179,7 @@ def merge(opts: argparse.Namespace) -> int:
     for name, query, query_label in zip(
         opts.name_dataset,
         opts.query_path,
-        opts.truth_path_labeled,
+        opts.query_path_labeled,
     ):
         query_lf = reader.vcf2lazyframe(query)
         query_label_lf = reader.vcf2lazyframe(query_label)
@@ -210,6 +211,10 @@ def merge(opts: argparse.Namespace) -> int:
 
 def serve(opts: argparse.Namespace) -> int:
     """Write a streamlit script in stdout."""
+    if not importlib.util.find_spec("streamlit"):
+        print("Reinstall vkd with web optional dependencies group to use serve command")
+        return 1
+
     tmp_dir = tempfile.TemporaryDirectory()
     tmp_path = pathlib.Path(tmp_dir.name)
 

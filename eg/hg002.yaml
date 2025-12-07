@@ -10,7 +10,7 @@ vkd.query_vcf_uri:
 vkd.reference_uri: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/release/references/GRCh38/GRCh38_GIABv3_no_alt_analysis_set_maskedGRC_decoys_MAP2K3_KMT2C_KCNJ18.fasta.gz
 
 vkd.clinvar_version: 20251201
-vkd.run_snpeff: false
+vkd.run_snpeff: true
 vkd.run_vep: false
 
 #vkd.compare_tool: "hap.py" # Hap.py docker seems not work
