@@ -23,7 +23,18 @@ def vcf2lazyframe(path: pathlib.Path) -> polars.LazyFrame:
     """Parse vcf information of input and generate a polars.LazyFrame."""
     lf = polars.scan_csv(
         path,
-        new_columns=["chr", "position", "_id", "ref", "alt", "qual", "filter", "_info", "_format", "genotype"],
+        new_columns=[
+            "chr",
+            "position",
+            "_id",
+            "ref",
+            "alt",
+            "qual",
+            "filter",
+            "_info",
+            "_format",
+            "genotype",
+        ],
         separator="\t",
         comment_prefix="#",
         has_header=False,
@@ -40,7 +51,9 @@ def vcf2lazyframe(path: pathlib.Path) -> polars.LazyFrame:
 
     lf = polars.concat(
         [
-            lf.filter(polars.col("_format") == format_str).with_columns(bad_column_parsing[format_str])
+            lf.filter(polars.col("_format") == format_str).with_columns(
+                bad_column_parsing[format_str],
+            )
             for format_str in formats
         ],
     )
@@ -50,13 +63,18 @@ def vcf2lazyframe(path: pathlib.Path) -> polars.LazyFrame:
     return lf
 
 
-def _lazyframe2format_pos(lf: polars.LazyFrame) -> typing.Iterator[tuple[str, dict[str, int]]]:
+def _lazyframe2format_pos(
+    lf: polars.LazyFrame,
+) -> typing.Iterator[tuple[str, dict[str, int]]]:
     """Create a dictionary of format element associate with position in format string."""
     for format_str in lf.select("_format").unique().collect().get_column("_format").to_list():
         yield (format_str, {k: v for v, k in enumerate(format_str.split(":"))})
 
 
-def _parse_vcf_header(path: pathlib.Path, formats: dict[str, dict[str, int]]) -> dict[str, list[polars.Expr]]:
+def _parse_vcf_header(
+    path: pathlib.Path,
+    formats: dict[str, dict[str, int]],
+) -> dict[str, list[polars.Expr]]:
     """Read a vcf header to generate a list of polars expression to extract info and genotype field.
 
     Args:
@@ -143,7 +161,9 @@ def _parse_format_line(line: str, format_pos: dict[str, int]) -> polars.Expr | N
 
         if number == "1":
             if format_type == "Integer":
-                local_expr = local_expr.str.to_integer(base=10, strict=False).cast(polars.UInt32)
+                local_expr = local_expr.str.to_integer(base=10, strict=False).cast(
+                    polars.UInt32,
+                )
             elif format_type == "Float":
                 local_expr = local_expr.str.to_decimal(scale=40).cast(polars.Float32)
             elif format_type in {"String", "Character"}:
@@ -157,7 +177,9 @@ def _parse_format_line(line: str, format_pos: dict[str, int]) -> polars.Expr | N
                     polars.element().str.to_integer(base=10, strict=False).cast(polars.UInt32),
                 )
             elif format_type == "Float":
-                local_expr = local_expr.list.eval(polars.element().str.to_decimal(scale=40).cast(polars.Float32))
+                local_expr = local_expr.list.eval(
+                    polars.element().str.to_decimal(scale=40).cast(polars.Float32),
+                )
             elif format_type in {"String", "Character"}:
                 pass  # Nothing to do for string and character
             else:

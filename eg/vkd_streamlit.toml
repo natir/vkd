@@ -1,0 +1,21 @@
+select_column = [
+	      "chr",
+	      "position",
+	      "ref",
+	      "alt",
+	      "qual",
+	      "dataset",
+	      "format_dp",
+	      "format_gt",
+	      "format_bd",
+	      "format_gq",
+	      "format_ri",
+	      "format_oa",
+	      "format_adall",
+	      "format_ad",
+	      "format_ea",
+]
+
+[alias]
+format_bd = "label"
+format_dp = "coverage"

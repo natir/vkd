@@ -22,13 +22,19 @@ if typing.TYPE_CHECKING:
     # project import
 
 
-def generic(input_path: pathlib.Path) -> None:
+def generic(input_path: pathlib.Path, config_path: pathlib.Path) -> None:
     """Principal function of generic page."""
     lf = polars.scan_parquet(input_path)
 
-    dataset_name_selector = streamlit.sidebar.selectbox("dataset", vkd.streamlit.dataset_name(lf))
+    config = vkd.streamlit.read_config(config_path)
+    lf = lf.select(config["select_column"])
 
-    streamlit.title("TP and FP by chromosome")
+    dataset_name_selector = streamlit.sidebar.selectbox(
+        "dataset",
+        vkd.streamlit.dataset_name(lf),
+    )
+
+    streamlit.title("Repartition of variant by chromosome and type.")
     count_by_chr = (
         lf.filter(polars.col("dataset") == dataset_name_selector).group_by("chr", "format_bd").len().collect()
     )
@@ -37,8 +43,10 @@ def generic(input_path: pathlib.Path) -> None:
         altair.Chart(count_by_chr)
         .mark_line()
         .encode(
-            altair.X("chr").sort(vkd.streamlit.chr_list(lf)),
-            altair.Y("len").scale(type="log"),
-            altair.Color("format_bd"),
+            altair.X("chr").sort(vkd.streamlit.chr_list(lf)).title(vkd.streamlit.axis_title(config, "chr")),
+            altair.Y("len").scale(type="log").title(vkd.streamlit.axis_title(config, "len")),
+            altair.Color("format_bd").title(
+                vkd.streamlit.axis_title(config, "format_bd"),
+            ),
         ),
     )

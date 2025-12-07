@@ -90,7 +90,6 @@ def get_parser() -> argparse.ArgumentParser:
         help="Path to query vcf",
         required=True,
         action="append",
-
     )
     merge_parser.add_argument(
         "-T",
@@ -128,6 +127,13 @@ def get_parser() -> argparse.ArgumentParser:
         help="Result of merge data",
         required=True,
     )
+    serve_parser.add_argument(
+        "-c",
+        "--config-path",
+        type=pathlib.Path,
+        help="Configuration path",
+        required=True,
+    )
     serve_parser.set_defaults(func=serve)
 
     return parser
@@ -160,7 +166,7 @@ def merge(opts: argparse.Namespace) -> int:
     """Perform a merge of pipeline output."""
     lfs = []
 
-    column_set = {}
+    column_set: set[tuple[str, polars.DataType]]= set()
 
     for name, truth, truth_label, query, query_label in zip(
         opts.name_dataset,
@@ -189,7 +195,11 @@ def merge(opts: argparse.Namespace) -> int:
 
         lfs.append(final)
 
-    polars.concat([lf.select([n for (n, t) in column_set]) for lf in lfs]).sink_parquet(opts.output_path)
+    polars.concat(
+        [lf.select([n for (n, t) in column_set if "right" in n]) for lf in lfs],
+    ).sink_parquet(
+        opts.output_path,
+    )
 
     return 0
 
@@ -199,18 +209,19 @@ def serve(opts: argparse.Namespace) -> int:
     tmp_dir = tempfile.TemporaryDirectory()
     tmp_path = pathlib.Path(tmp_dir.name)
 
+    enable_page = ["generic", "by_chr"]
+
     main_file_path = tmp_path / "main.py"
     with open(main_file_path, "w") as fh:
         print(
-            """import vkd
+            f"""import vkd
 import vkd.streamlit
 
-vkd.streamlit.main()
+vkd.streamlit.main({enable_page})
 """,
             file=fh,
         )
 
-    enable_page = ["generic", "by_chr"]
     for page in enable_page:
         with open(tmp_path / f"{page}.py", "w") as fh:
             print(
@@ -218,7 +229,7 @@ vkd.streamlit.main()
 import vkd.streamlit
 import vkd.streamlit.{page}
 
-vkd.streamlit.{page}.{page}("{opts.input_path}")
+vkd.streamlit.{page}.{page}("{opts.input_path}", "{opts.config_path}")
 """,
                 file=fh,
             )
