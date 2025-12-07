@@ -104,6 +104,7 @@ def get_parser() -> argparse.ArgumentParser:
         type=pathlib.Path,
         help="Path to snpeff annotation",
         required=False,
+        action="append",
     )
     merge_parser.add_argument(
         "-v",
@@ -111,6 +112,7 @@ def get_parser() -> argparse.ArgumentParser:
         type=pathlib.Path,
         help="Path to vep annotation",
         required=False,
+        action="append",
     )
     merge_parser.add_argument(
         "-o",
@@ -191,9 +193,15 @@ def merge(opts: argparse.Namespace) -> int:
 
         lfs.append(final)
 
-    polars.concat(
+    lf = polars.concat(
         [lf.select([n for (n, t) in column_set if "right" in n]) for lf in lfs],
-    ).sink_parquet(
+    )
+
+    if opts.clinvar_path is not None:
+        clinvar_lf = reader.vcf2lazyframe(opts.clinvar_path)
+        lf = lf.join(clinvar_lf, on=["chr", "position", "ref", "alt"], how="left")
+
+    lf.sink_parquet(
         opts.output_path,
     )
 
