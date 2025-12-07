@@ -11,7 +11,7 @@ vkd.reference_uri: https://ftp-trace.ncbi.nlm.nih.gov/ReferenceSamples/giab/rele
 
 vkd.clinvar_version: 20251201
 vkd.run_snpeff: true
-vkd.run_vep: false
+vkd.run_vep: true
 
 #vkd.compare_tool: "hap.py" # Hap.py docker seems not work
 vkd.compare_tool: "aardvark"

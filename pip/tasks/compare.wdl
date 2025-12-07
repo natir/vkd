@@ -83,7 +83,7 @@ task merge {
     }
 
     requirements {
-        container: "vkd/latest"
+        container: "vkd"
         cpu: 8
     }
 }

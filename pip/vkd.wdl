@@ -61,6 +61,7 @@ workflow vkd {
         ], false)) {
             call annotate.snpeff { input:
                 vcf = query.result.vcf,
+                dataset_name = dataset_path.left,
             }
         }
 
@@ -69,6 +70,7 @@ workflow vkd {
         ], false)) {
             call annotate.vep { input:
                 vcf = query.result.vcf,
+                dataset_name = dataset_path.left,
             }
         }
 
