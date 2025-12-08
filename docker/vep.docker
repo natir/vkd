@@ -1,3 +1,0 @@
-FROM ensemblorg/ensembl-vep:latest
-
-RUN INSTALL.pl -a c -y GRCh38 -s homo_sapiens -g all

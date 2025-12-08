@@ -13,5 +13,7 @@ vkd.clinvar_version: 20251201
 vkd.run_snpeff: true
 vkd.run_vep: true
 
+vkd.annotation_gff: https://ftp.ebi.ac.uk/pub/databases/gencode/Gencode_human/release_49/gencode.v49.chr_patch_hapl_scaff.basic.annotation.gff3.gz
+
 #vkd.compare_tool: "hap.py" # Hap.py docker seems not work
 vkd.compare_tool: "aardvark"

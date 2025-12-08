@@ -3,79 +3,178 @@ version 1.2
 import "../utils/types.wdl"
 
 task aardvark {
-  input {
-    VcfWithIndex truth
-    VcfWithIndex query
-    File confident_bed
-    FastaWithIndex reference_genome
-    String output_name
-  }
-
-  command <<<
-    aardvark compare --threads 4 --reference ~{reference_genome.fasta} --truth-vcf ~{truth.vcf} --query-vcf ~{query.vcf} --regions ~{confident_bed} --output-dir ~{output_name}
-  >>>
-
-  output {
-    VcfCompareOutput result = VcfCompareOutput {
-      summary: "~{output_name}/summary.tsv",
-      truth: "~{output_name}/truth.vcf.gz",
-      query: "~{output_name}/query.vcf.gz",
+    meta {
+        author: [
+            "Pierre Marijon <pierre@marijon.fr>",
+        ]
+        description: "Run aardvark to compare a truth vcf against a query."
+        outputs: {
+            result: {
+                help: "File produce by aardvark.",
+            },
+        }
     }
-  }
 
-  requirements {
-    container: "quay.io/biocontainers/aardvark:0.10.2--h4349ce8_0"
-    cpu: 8
-  }
+    parameter_meta {
+        confident_bed: {
+            help: "Bed of trustable region.",
+        }
+        reference_genome: {
+            help: "Reference genome in fasta with fasta index.",
+        }
+        truth: {
+            help: "Truth vcf with index.",
+        }
+        query: {
+            help: "Query vcf with index.",
+        }
+        output_name: {
+            help: "Name of output directory.",
+        }
+    }
+
+    input {
+        File confident_bed
+        FileWithIndex reference_genome
+        FileWithIndex truth
+        FileWithIndex query
+        String output_name
+    }
+
+    command <<<
+        aardvark compare --threads 4 --reference "~{reference_genome.file}" --truth-vcf "~{
+            truth.file}" --query-vcf "~{query.file}" --regions "~{confident_bed}" --output-dir "~{
+            output_name}"
+    >>>
+
+    output {
+        VcfCompareOutput result = VcfCompareOutput {
+            summary: "~{output_name}/summary.tsv",
+            truth: "~{output_name}/truth.vcf.gz",
+            query: "~{output_name}/query.vcf.gz",
+        }
+    }
+
+    requirements {
+        container: "quay.io/biocontainers/aardvark@sha256:e8f5f521eeef6107c4247f019341284fd4f83050e127865983e2443b2a3ebbbc:0.10.2--h4349ce8_0"
+        cpu: 8
+    }
 }
 
 task happy {
-  input {
-    VcfWithIndex truth
-    VcfWithIndex query
-    File confident_bed
-    FastaWithIndex reference_genome
-    String output_name
-  }
-
-  command <<<
-    hap.py -f ~{confident_bed} -o ~{output_name} -r ~{reference_genome.fasta} ~{truth.vcf} ~{query.vcf}
-  >>>
-
-  output {
-    VcfCompareOutput result = VcfCompareOutput {
-      summary: "~{output_name}/summary.tsv",
-      truth: "~{output_name}/truth.vcf.gz",
-      query: "~{output_name}/query.vcf.gz",
+    meta {
+        author: [
+            "Pierre Marijon <pierre@marijon.fr>",
+        ]
+        description: "Run hap.py to compare a truth vcf against a query."
+        outputs: {
+            result: {
+                help: "File produce by hap.py.",
+            },
+        }
     }
-  }
 
-  requirements {
-    container: "quay.io/biocontainers/hap.py:0.3.15--py27hcb73b3d_0"
-    cpu: 1
-  }
+    parameter_meta {
+        confident_bed: {
+            help: "Bed of trustable region.",
+        }
+        reference_genome: {
+            help: "Reference genome in fasta with fasta index.",
+        }
+        truth: {
+            help: "Truth vcf with index.",
+        }
+        query: {
+            help: "Query vcf with index.",
+        }
+        output_name: {
+            help: "Name of output directory.",
+        }
+    }
+
+    input {
+        File confident_bed
+        FileWithIndex reference_genome
+        FileWithIndex truth
+        FileWithIndex query
+        String output_name
+    }
+
+    command <<<
+        hap.py -f "~{confident_bed}" -o "~{output_name}" -r "~{reference_genome.file}" "~{
+            truth.file}" "~{query.file}"
+    >>>
+
+    output {
+        VcfCompareOutput result = VcfCompareOutput {
+            summary: "~{output_name}/summary.tsv",
+            truth: "~{output_name}/truth.vcf.gz",
+            query: "~{output_name}/query.vcf.gz",
+        }
+    }
+
+    requirements {
+        container: "quay.io/biocontainers/hap.py@sha256:d63b963a6cb01b4830393b22369e7b91d298e4156dde353739e74e4cfa4f96d0:0.3.15--py27hcb73b3d_0"
+        cpu: 1
+    }
 }
 
 task merge {
+    meta {
+        author: [
+            "Pierre Marijon <pierre@marijon.fr>",
+        ]
+        description: "Run vkd merge on multiple query file and labeled query file."
+        outputs: {
+            dataframe: {
+                help: "A parquet file with all input data merge",
+            },
+        }
+    }
+
+    parameter_meta {
+        query: {
+            help: "List of vcf query file.",
+        }
+        query_label: {
+            help: "List of vcf query file with label.",
+        }
+        dataset: {
+            help: "List of name associate to vcf query.",
+        }
+        clinvar: {
+            help: "Clinvar annotation vcf file",
+        }
+        snpeff: {
+            help: "Result of snpeff annotation of query vcf",
+        }
+        vep: {
+            help: "Result of vep annotation of query vcf",
+        }
+    }
+
     input {
         Array[File] query
         Array[File] query_label
-        Array[String] version
+        Array[String] dataset
         File? clinvar
-        File? snpeff
-        File? vep
+        Array[File]? snpeff
+        Array[File]? vep
     }
 
-    String versions = sep(" ", prefix("-n ", version))
-    String querys = sep(" ", prefix("-q ", query))
-    String querys_label = sep(" ", prefix("-Q ", query_label))
+    String dataset_str = sep(" ", prefix("-n ", dataset))
+    String query_str = sep(" ", prefix("-q ", query))
+    String query_label_str = sep(" ", prefix("-Q ", query_label))
 
-    String clinvar_path = if defined(clinvar) then " -c "+select_first([clinvar]) else ""
-    String snpeff_path = if defined(snpeff) then " -s "+select_first([snpeff]) else ""
-    String vep_path = if defined(vep) then " -v "+select_first([vep]) else ""
+    String clinvar_path = if defined(clinvar) then " -c " + select_first([
+        clinvar,
+    ]) else ""
 
     command <<<
-        vkd --threads 8 merge ~{versions} ~{querys} ~{querys_label} ~{clinvar_path} ~{snpeff_path} ~{vep_path} -o merge.parquet
+        # shellcheck disable=SC2086
+        # string are build by task
+        vkd --threads 8 merge ~{dataset_str} ~{query_str} ~{query_label_str} ~{
+             clinvar_path} -o merge.parquet
     >>>
 
     output {
@@ -83,7 +182,7 @@ task merge {
     }
 
     requirements {
-        container: "vkd"
+        container: "vkd@sha256:0d5cab78b56a:latest"
         cpu: 8
     }
 }
