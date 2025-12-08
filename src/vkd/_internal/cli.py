@@ -176,26 +176,42 @@ def merge(opts: argparse.Namespace) -> int:
 
     column_set: set[tuple[str, polars.DataType]] = set()
 
-    for name, query, query_label in zip(
+    snpeffs = [None] * len(opts.name_dataset) if opts.snpeff is None else opts.snpeff
+    veps = [None] * len(opts.name_dataset) if opts.vep is None else opts.vep
+
+    for name, query, label, snpeff, vep in zip(
         opts.name_dataset,
         opts.query_path,
         opts.query_path_labeled,
+        snpeffs,
+        veps,
     ):
-        query_lf = reader.vcf2lazyframe(query)
-        query_label_lf = reader.vcf2lazyframe(query_label)
-        query_lf = query_lf.join(query_label_lf, on=["chr", "position", "ref", "alt"])
+        lf = reader.vcf2lazyframe(query)
+        label_lf = reader.vcf2lazyframe(label).select(on=["chr", "position", "ref", "alt", "format_bd"])
 
-        final = query_lf.with_columns(dataset=polars.lit(name))
+        lf = lf.join(label_lf, on=["chr", "position", "ref", "alt"])
+
+        if snpeff is not None:
+            annot_lf = reader.vcf2lazyframe(snpeff).select(on=["chr", "position", "ref", "alt", "info_ANN"])
+            annot_lf = reader.parse_info_ann(annot_lf, "snpeff")
+            lf = lf.join(annot_lf, on=["chr", "position", "ref", "alt"])
+
+        if vep is not None:
+            annot_lf = reader.vcf2lazyframe(snpeff).select(on=["chr", "position", "ref", "alt", "info_ANN"])
+            annot_lf = reader.parse_info_ann(annot_lf, "vep")
+            lf = lf.join(annot_lf, on=["chr", "position", "ref", "alt"])
+
+        lf = lf.with_columns(dataset=polars.lit(name))
 
         if len(column_set) == 0:
-            column_set = set(zip(final.columns, final.dtypes))
+            column_set = set(zip(lf.columns, lf.dtypes))
         else:
-            column_set &= set(zip(final.columns, final.dtypes))
+            column_set &= set(zip(lf.columns, lf.dtypes))
 
-        lfs.append(final)
+        lfs.append(lf)
 
     lf = polars.concat(
-        [lf.select([n for (n, t) in column_set if "right" in n]) for lf in lfs],
+        [lf.select([n for (n, t) in column_set]) for lf in lfs],
     )
 
     if opts.clinvar_path is not None:

@@ -188,3 +188,34 @@ def _parse_format_line(line: str, format_pos: dict[str, int]) -> polars.Expr | N
         return local_expr.alias(f"format_{name.lower()}")
 
     return None
+
+
+def parse_info_ann(lf: polars.LazyFrame, prefix: str) -> polars.LazyFrame:
+    """Extract information if info_ANN column."""
+    lf = lf.explode("info_ANN")
+
+    lf = lf.with_columns(
+        ann=polars.col("info_ANN").str.split("|").cast(polars.List(polars.Utf8())).alias("tmp_ann"),
+    ).drop("info_ANN")
+
+    lf = lf.with_columns(
+        [
+            polars.col("ann").list.get(1).alias(f"{prefix}_effect"),
+            polars.col("ann").list.get(2).alias(f"{prefix}_impact"),
+            polars.col("ann").list.get(3).alias(f"{prefix}_gene"),
+            polars.col("ann").list.get(4).alias(f"{prefix}_geneid"),
+            polars.col("ann").list.get(5).alias(f"{prefix}_feature"),
+            polars.col("ann").list.get(6).alias(f"{prefix}_feature_id"),
+            polars.col("ann").list.get(7).alias(f"{prefix}_bio_type"),
+            polars.col("ann").list.get(8).alias(f"{prefix}_rank"),
+            polars.col("ann").list.get(9).alias(f"{prefix}_hgvs_c"),
+            polars.col("ann").list.get(10).alias(f"{prefix}_hgvs_p"),
+            polars.col("ann").list.get(11).alias(f"{prefix}_cdna_pos"),
+            polars.col("ann").list.get(12).alias(f"{prefix}_cdna_len"),
+            polars.col("ann").list.get(13).alias(f"{prefix}_cds_pos"),
+            polars.col("ann").list.get(14).alias(f"{prefix}_cds_len"),
+            polars.col("ann").list.get(15).alias(f"{prefix}_aa_pos"),
+        ],
+    )
+
+    return lf.drop("tmp_ann")
