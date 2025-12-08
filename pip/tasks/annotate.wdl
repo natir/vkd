@@ -38,7 +38,7 @@ task snpeff {
     }
 
     requirements {
-        container: "quay.io/biocontainers/snpeff@sha256:2a79bffc9c255c9a3b0503aab730ed3f428c40838a97be262cfd3b89d91fd9f3:5.3.0a--hdfd78af_1"
+        container: "quay.io/biocontainers/snpeff:5.3.0a--hdfd78af_1"
         cpu: 1
     }
 }
@@ -89,7 +89,7 @@ task vep {
     }
 
     requirements {
-        container: "quay.io/biocontainers/ensembl-vep@sha256:04cbcc3c54350ebf51c02698dd23183b1b9db22daa9983037f7260ee37601aa7:115.2--pl5321h2a3209d_1"
+        container: "quay.io/biocontainers/ensembl-vep:115.2--pl5321h2a3209d_1"
         cpu: 4
     }
 }

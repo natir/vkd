@@ -44,7 +44,7 @@ task variant {
     }
 
     requirements {
-        container: "quay.io/biocontainers/bcftools@sha256:a4db8dc26ca7:1.22--h3a4d415_1"
+        container: "quay.io/biocontainers/bcftools:1.22--h3a4d415_1"
         cpu: 4
     }
 }

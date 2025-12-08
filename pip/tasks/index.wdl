@@ -43,7 +43,7 @@ task tabix {
     }
 
     requirements {
-        container: "quay.io/biocontainers/htslib@sha256:ce6e2a2ffaf3:1.22.1--h566b1c6_0"
+        container: "quay.io/biocontainers/htslib:1.22.1--h566b1c6_0"
         cpu: 4
     }
 }

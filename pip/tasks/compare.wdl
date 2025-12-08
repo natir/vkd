@@ -56,7 +56,7 @@ task aardvark {
     }
 
     requirements {
-        container: "quay.io/biocontainers/aardvark@sha256:e8f5f521eeef6107c4247f019341284fd4f83050e127865983e2443b2a3ebbbc:0.10.2--h4349ce8_0"
+        container: "quay.io/biocontainers/aardvark:0.10.2--h4349ce8_0"
         cpu: 8
     }
 }
@@ -114,7 +114,7 @@ task happy {
     }
 
     requirements {
-        container: "quay.io/biocontainers/hap.py@sha256:d63b963a6cb01b4830393b22369e7b91d298e4156dde353739e74e4cfa4f96d0:0.3.15--py27hcb73b3d_0"
+        container: "quay.io/biocontainers/hap.py:0.3.15--py27hcb73b3d_0"
         cpu: 1
     }
 }
@@ -170,6 +170,9 @@ task merge {
         clinvar,
     ]) else ""
 
+    String snpeff_str = sep(" ", prefix("-s ", snpeff))
+    String snpeff_str = sep(" ", prefix("-v ", vep))
+
     command <<<
         # shellcheck disable=SC2086
         # string are build by task
@@ -182,7 +185,7 @@ task merge {
     }
 
     requirements {
-        container: "vkd@sha256:0d5cab78b56a:latest"
+        container: "vkd:latest"
         cpu: 8
     }
 }

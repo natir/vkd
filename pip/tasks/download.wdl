@@ -25,7 +25,7 @@ task base {
     }
 
     input {
-        File filename
+        String filename
         String uri
     }
 
@@ -38,7 +38,7 @@ task base {
     }
 
     requirements {
-        container: "richardjkendall/curl-bash@sha256:62f573d6dde0"
+        container: "richardjkendall/curl-bash@sha256:0744963ae76a3be377669124976cd9691b9a76f33e80cdbd916b38d9c824be88"
     }
 }
 
@@ -81,13 +81,13 @@ task file_with_index {
     output {
         FileWithIndex result = FileWithIndex {
             file: filename,
-            index: filename + index,
+            index: filename + "." + index,
         }
     }
 
     requirements {
-        container: "richardjkendall/curl-bash@sha256:62f573d6dde0"
-    }
+        container: "richardjkendall/curl-bash@sha256:0744963ae76a3be377669124976cd9691b9a76f33e80cdbd916b38d9c824be88"
+}
 }
 
 task clinvar {
@@ -130,6 +130,7 @@ task clinvar {
     }
 
     requirements {
-        container: "richardjkendall/curl-bash@sha256:62f573d6dde0"
+              container: "richardjkendall/curl-bash@sha256:0744963ae76a3be377669124976cd9691b9a76f33e80cdbd916b38d9c824be88"
+
     }
 }
