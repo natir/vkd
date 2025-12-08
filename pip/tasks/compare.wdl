@@ -162,22 +162,22 @@ task merge {
         Array[File]? vep
     }
 
-    String dataset_str = sep(" ", prefix("-n ", dataset))
-    String query_str = sep(" ", prefix("-q ", query))
-    String query_label_str = sep(" ", prefix("-Q ", query_label))
-
-    String clinvar_path = if defined(clinvar) then " -c " + select_first([
+    String clinvar_path = if defined(clinvar) then "-c " + select_first([
         clinvar,
     ]) else ""
 
-    String snpeff_str = sep(" ", prefix("-s ", snpeff))
-    String snpeff_str = sep(" ", prefix("-v ", vep))
+    String snpeff_str = if defined(snpeff) then "-s " + sep(" ", select_first([
+        snpeff,
+    ])) else ""
+    String vep_str = if defined(vep) then "-v " + sep(" ", select_first([
+        vep,
+    ])) else ""
 
     command <<<
         # shellcheck disable=SC2086
         # string are build by task
-        vkd --threads 8 merge ~{dataset_str} ~{query_str} ~{query_label_str} ~{
-             clinvar_path} -o merge.parquet
+        vkd --threads 8 merge -n ~{sep(" ", dataset)} -q ~{sep(" ", query)} -Q ~{sep(" ", query_label
+             )} ~{clinvar_path} ~{snpeff_str} ~{vep_str} -o merge.parquet
     >>>
 
     output {
