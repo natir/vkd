@@ -2505,8 +2505,12 @@ name = "vkd"
 source = { editable = "." }
 dependencies = [
     { name = "polars" },
-    { name = "streamlit" },
     { name = "xopen" },
+]
+
+[package.optional-dependencies]
+web = [
+    { name = "streamlit" },
 ]
 
 [package.dev-dependencies]
@@ -2544,9 +2548,10 @@ maintain = [
 [package.metadata]
 requires-dist = [
     { name = "polars" },
-    { name = "streamlit", specifier = "==1.50" },
+    { name = "streamlit", marker = "extra == 'web'", specifier = "==1.50" },
     { name = "xopen" },
 ]
+provides-extras = ["web"]
 
 [package.metadata.requires-dev]
 ci = [

@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import importlib
 import inspect
+import logging
 import os
 import pathlib
 import subprocess
@@ -74,7 +75,7 @@ def get_parser() -> argparse.ArgumentParser:
         type=str,
         help="Name of dataset",
         required=True,
-        action="append",
+        nargs="+",
     )
     merge_parser.add_argument(
         "-q",
@@ -82,7 +83,7 @@ def get_parser() -> argparse.ArgumentParser:
         type=pathlib.Path,
         help="Path to query vcf",
         required=True,
-        action="append",
+        nargs="+",
     )
     merge_parser.add_argument(
         "-Q",
@@ -90,7 +91,7 @@ def get_parser() -> argparse.ArgumentParser:
         type=pathlib.Path,
         help="Path to query vcf labeled",
         required=True,
-        action="append",
+        nargs="+",
     )
     merge_parser.add_argument(
         "-c",
@@ -105,7 +106,7 @@ def get_parser() -> argparse.ArgumentParser:
         type=pathlib.Path,
         help="Path to snpeff annotation",
         required=False,
-        action="append",
+        nargs="+",
     )
     merge_parser.add_argument(
         "-v",
@@ -113,7 +114,7 @@ def get_parser() -> argparse.ArgumentParser:
         type=pathlib.Path,
         help="Path to vep annotation",
         required=False,
-        action="append",
+        nargs="+",
     )
     merge_parser.add_argument(
         "-o",
@@ -172,12 +173,13 @@ def main(args: list[str] | None = None) -> int:
 
 def merge(opts: argparse.Namespace) -> int:
     """Perform a merge of pipeline output."""
+    logger = logging.getLogger("merge")
     lfs = []
 
-    column_set: set[tuple[str, polars.DataType]] = set()
+    schema_global: dict[str, polars.DataType] | None = None
 
-    snpeffs = [None] * len(opts.name_dataset) if opts.snpeff is None else opts.snpeff
-    veps = [None] * len(opts.name_dataset) if opts.vep is None else opts.vep
+    snpeffs = [None] * len(opts.name_dataset) if opts.snpeff_path is None else opts.snpeff_path
+    veps = [None] * len(opts.name_dataset) if opts.vep_path is None else opts.vep_path
 
     for name, query, label, snpeff, vep in zip(
         opts.name_dataset,
@@ -187,35 +189,39 @@ def merge(opts: argparse.Namespace) -> int:
         veps,
     ):
         lf = reader.vcf2lazyframe(query)
-        label_lf = reader.vcf2lazyframe(label).select(on=["chr", "position", "ref", "alt", "format_bd"])
+        label_lf = reader.vcf2lazyframe(label).select(["chr", "position", "ref", "alt", "format_bd"])
 
         lf = lf.join(label_lf, on=["chr", "position", "ref", "alt"], how="left")
 
         if snpeff is not None:
-            annot_lf = reader.vcf2lazyframe(snpeff).select(on=["chr", "position", "ref", "alt", "info_ANN"])
+            annot_lf = reader.vcf2lazyframe(snpeff).select(["chr", "position", "ref", "alt", "info_ANN"])
             annot_lf = reader.parse_info_ann(annot_lf, "snpeff")
             lf = lf.join(annot_lf, on=["chr", "position", "ref", "alt"], how="left")
 
         if vep is not None:
-            annot_lf = reader.vcf2lazyframe(snpeff).select(on=["chr", "position", "ref", "alt", "info_ANN"])
+            annot_lf = reader.vcf2lazyframe(snpeff).select(["chr", "position", "ref", "alt", "info_ANN"])
             annot_lf = reader.parse_info_ann(annot_lf, "vep")
             lf = lf.join(annot_lf, on=["chr", "position", "ref", "alt"], how="left")
 
         lf = lf.with_columns(dataset=polars.lit(name))
 
-        if len(column_set) == 0:
-            column_set = set(zip(lf.columns, lf.dtypes))
+        schema = lf.collect_schema()
+        if schema_global is None:
+            schema_global = dict(schema)
         else:
-            column_set &= set(zip(lf.columns, lf.dtypes))
+            for col, dtypes in schema.items():
+                if col in schema_global and schema_global[col] != dtypes:
+                    logger.info(f"drop {col} old dtypes {dtypes} new dtypes {schema_global[col]}")
+                    del schema_global[col]
 
         lfs.append(lf)
 
-    lf = polars.concat(
-        [lf.select([n for (n, t) in column_set]) for lf in lfs],
-    )
+    lf = polars.concat(lfs) if schema_global is None else polars.concat([lf.select(schema_global.keys()) for lf in lfs])
 
     if opts.clinvar_path is not None:
-        clinvar_lf = reader.vcf2lazyframe(opts.clinvar_path)
+        clinvar_lf = reader.vcf2lazyframe(opts.clinvar_path, with_genotype=False)
+        clinvar_lf = clinvar_lf.with_columns(chr=polars.col("chr").str.replace(r"^", "chr"))
+
         lf = lf.join(clinvar_lf, on=["chr", "position", "ref", "alt"], how="left")
 
     lf.sink_parquet(

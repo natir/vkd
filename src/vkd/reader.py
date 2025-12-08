@@ -19,29 +19,33 @@ if typing.TYPE_CHECKING:
     import pathlib
 
 
-def vcf2lazyframe(path: pathlib.Path) -> polars.LazyFrame:
+def vcf2lazyframe(path: pathlib.Path, *, with_genotype: bool = True) -> polars.LazyFrame:
     """Parse vcf information of input and generate a polars.LazyFrame."""
+    new_columns = [
+        "chr",
+        "position",
+        "_id",
+        "ref",
+        "alt",
+        "qual",
+        "filter",
+        "_info",
+    ]
+
+    if with_genotype:
+        new_columns.extend(["_format", "genotype"])
+
     lf = polars.scan_csv(
         path,
-        new_columns=[
-            "chr",
-            "position",
-            "_id",
-            "ref",
-            "alt",
-            "qual",
-            "filter",
-            "_info",
-            "_format",
-            "genotype",
-        ],
-        separator="\t",
         comment_prefix="#",
         has_header=False,
+        new_columns=new_columns,
         null_values=["."],
+        schema_overrides={"chr": polars.String},
+        separator="\t",
     )
 
-    formats = dict(_lazyframe2format_pos(lf))
+    formats = dict(_lazyframe2format_pos(lf)) if with_genotype else {}
 
     bad_column_parsing = _parse_vcf_header(path, formats)
 
@@ -49,16 +53,19 @@ def vcf2lazyframe(path: pathlib.Path) -> polars.LazyFrame:
         bad_column_parsing["info"],
     )
 
-    lf = polars.concat(
-        [
-            lf.filter(polars.col("_format") == format_str).with_columns(
-                bad_column_parsing[format_str],
-            )
-            for format_str in formats
-        ],
-    )
+    if with_genotype:
+        lf = polars.concat(
+            [
+                lf.filter(polars.col("_format") == format_str).with_columns(
+                    bad_column_parsing[format_str],
+                )
+                for format_str in formats
+            ],
+        )
 
-    lf = lf.drop("_id", "_info", "_format", "genotype")
+    lf = lf.drop("_id", "_info")
+    if with_genotype:
+        lf = lf.drop("_format", "genotype")
 
     return lf
 
@@ -195,7 +202,7 @@ def parse_info_ann(lf: polars.LazyFrame, prefix: str) -> polars.LazyFrame:
     lf = lf.explode("info_ANN")
 
     lf = lf.with_columns(
-        ann=polars.col("info_ANN").str.split("|").cast(polars.List(polars.Utf8())).alias("tmp_ann"),
+        ann=polars.col("info_ANN").str.split("|").cast(polars.List(polars.Utf8())),
     ).drop("info_ANN")
 
     lf = lf.with_columns(
@@ -218,4 +225,4 @@ def parse_info_ann(lf: polars.LazyFrame, prefix: str) -> polars.LazyFrame:
         ],
     )
 
-    return lf.drop("tmp_ann")
+    return lf.drop("ann")
