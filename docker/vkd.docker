@@ -1,4 +1,3 @@
-# Stage build
 FROM ghcr.io/astral-sh/uv:trixie-slim
 
 WORKDIR /app

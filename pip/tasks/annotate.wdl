@@ -27,7 +27,7 @@ task vep {
   }
 
   command <<<
-    vep -i ~{vcf} --fork 4 --vcf --vcf_info_field ANN --database --species homo_sapiens --compress_output gzip -o ~{dataset_name}_vep.vcf.gz
+    vep -i ~{vcf} --fork 4 --vcf --vcf_info_field ANN --cache --species homo_sapiens --compress_output gzip -o ~{dataset_name}_vep.vcf.gz
   >>>
 
   output {
@@ -35,7 +35,7 @@ task vep {
   }
 
   requirements {
-    container: "ensemblorg/ensembl-vep:latest"
+    container: "vep"
     cpu: 4
   }
 }
