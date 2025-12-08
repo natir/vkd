@@ -189,17 +189,17 @@ def merge(opts: argparse.Namespace) -> int:
         lf = reader.vcf2lazyframe(query)
         label_lf = reader.vcf2lazyframe(label).select(on=["chr", "position", "ref", "alt", "format_bd"])
 
-        lf = lf.join(label_lf, on=["chr", "position", "ref", "alt"])
+        lf = lf.join(label_lf, on=["chr", "position", "ref", "alt"], how="left")
 
         if snpeff is not None:
             annot_lf = reader.vcf2lazyframe(snpeff).select(on=["chr", "position", "ref", "alt", "info_ANN"])
             annot_lf = reader.parse_info_ann(annot_lf, "snpeff")
-            lf = lf.join(annot_lf, on=["chr", "position", "ref", "alt"])
+            lf = lf.join(annot_lf, on=["chr", "position", "ref", "alt"], how="left")
 
         if vep is not None:
             annot_lf = reader.vcf2lazyframe(snpeff).select(on=["chr", "position", "ref", "alt", "info_ANN"])
             annot_lf = reader.parse_info_ann(annot_lf, "vep")
-            lf = lf.join(annot_lf, on=["chr", "position", "ref", "alt"])
+            lf = lf.join(annot_lf, on=["chr", "position", "ref", "alt"], how="left")
 
         lf = lf.with_columns(dataset=polars.lit(name))
 
