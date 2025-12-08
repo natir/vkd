@@ -221,6 +221,7 @@ def merge(opts: argparse.Namespace) -> int:
     if opts.clinvar_path is not None:
         clinvar_lf = reader.vcf2lazyframe(opts.clinvar_path, with_genotype=False)
         clinvar_lf = clinvar_lf.with_columns(chr=polars.col("chr").str.replace(r"^", "chr"))
+        clinvar_lf = clinvar_lf.rename({col: col.replace("info_", "clinvar_") for col in clinvar_lf.collect_schema()})
 
         lf = lf.join(clinvar_lf, on=["chr", "position", "ref", "alt"], how="left")
 
