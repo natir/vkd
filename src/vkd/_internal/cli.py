@@ -189,6 +189,9 @@ def merge(opts: argparse.Namespace) -> int:
         veps,
     ):
         lf = reader.vcf2lazyframe(query)
+        if lf is None:
+            continue
+
         label_lf = reader.vcf2lazyframe(label).select(
             ["chr", "position", "ref", "alt", "format_bd"],
         )
@@ -223,6 +226,10 @@ def merge(opts: argparse.Namespace) -> int:
                     del schema_global[col]
 
         lfs.append(lf)
+
+    if not lfs:
+        open(opts.output_path, "w")
+        return 0
 
     lf = polars.concat(lfs) if schema_global is None else polars.concat([lf.select(schema_global.keys()) for lf in lfs])
 

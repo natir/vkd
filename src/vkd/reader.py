@@ -19,30 +19,6 @@ if typing.TYPE_CHECKING:
     import pathlib
 
 
-DEFAULT_DF = polars.DataFrame({
-        "chr": [],
-        "position": [],
-        "_id": [],
-        "ref": [],
-        "alt": [],
-        "qual": [],
-        "filter": [],
-        "_info": [],
-        "_format": [],
-        "genotype": [],
-}, schema={
-        "chr": polars.String,
-        "position": polars.Int64,
-        "_id": polars.String,
-        "ref": polars.String,
-        "alt": polars.String,
-        "qual": polars.Int64,
-        "filter": polars.String,
-        "_info": polars.String,
-        "_format": polars.String,
-        "genotype": polars.String,
-})
-
 def vcf2lazyframe(
     path: pathlib.Path,
     *,
@@ -74,7 +50,7 @@ def vcf2lazyframe(
             separator="\t",
         )
     except polars.exceptions.NoDataError:
-        lf = DEFAULT_DF.lazy()
+        return None
 
     formats = dict(_lazyframe2format_pos(lf)) if with_genotype else {}
 
