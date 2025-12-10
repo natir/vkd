@@ -19,7 +19,35 @@ if typing.TYPE_CHECKING:
     import pathlib
 
 
-def vcf2lazyframe(path: pathlib.Path, *, with_genotype: bool = True) -> polars.LazyFrame:
+DEFAULT_DF = polars.DataFrame({
+        "chr": [],
+        "position": [],
+        "_id": [],
+        "ref": [],
+        "alt": [],
+        "qual": [],
+        "filter": [],
+        "_info": [],
+        "_format": [],
+        "genotype": [],
+}, schema={
+        "chr": polars.String,
+        "position": polars.Int64,
+        "_id": polars.String,
+        "ref": polars.String,
+        "alt": polars.String,
+        "qual": polars.Int64,
+        "filter": polars.String,
+        "_info": polars.String,
+        "_format": polars.String,
+        "genotype": polars.String,
+})
+
+def vcf2lazyframe(
+    path: pathlib.Path,
+    *,
+    with_genotype: bool = True,
+) -> polars.LazyFrame:
     """Parse vcf information of input and generate a polars.LazyFrame."""
     new_columns = [
         "chr",
@@ -35,15 +63,18 @@ def vcf2lazyframe(path: pathlib.Path, *, with_genotype: bool = True) -> polars.L
     if with_genotype:
         new_columns.extend(["_format", "genotype"])
 
-    lf = polars.scan_csv(
-        path,
-        comment_prefix="#",
-        has_header=False,
-        new_columns=new_columns,
-        null_values=["."],
-        schema_overrides={"chr": polars.String},
-        separator="\t",
-    )
+    try:
+        lf = polars.scan_csv(
+            path,
+            comment_prefix="#",
+            has_header=False,
+            new_columns=new_columns,
+            null_values=["."],
+            schema_overrides={"chr": polars.String},
+            separator="\t",
+        )
+    except polars.exceptions.NoDataError:
+        lf = DEFAULT_DF.lazy()
 
     formats = dict(_lazyframe2format_pos(lf)) if with_genotype else {}
 
