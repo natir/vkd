@@ -1,10 +1,11 @@
 version 1.2
 
-import "tasks/annotate.wdl"
 import "tasks/compare.wdl"
 import "tasks/download.wdl"
+import "tasks/extract.wdl"
 import "tasks/index.wdl"
 import "tasks/normalize.wdl"
+import "workflow/run_compare.wdl"
 
 workflow vkd {
     meta {
@@ -20,6 +21,9 @@ workflow vkd {
     }
 
     parameter_meta {
+        target_chromosome: {
+            help: "List of chromosome of interest",
+        }
         query_vcf_uri: {
             help: "Map associate a name to uri of vcf",
         }
@@ -55,6 +59,7 @@ workflow vkd {
     }
 
     input {
+        Array[String] target_chromosome
         Map[String, String] query_vcf_uri
         String gold_std_vcf_uri
         String gold_std_bed_uri
@@ -78,7 +83,6 @@ workflow vkd {
     if (select_first([
         run_vep,
     ], false)) {
-
         call download.base as dl_annotation {
             uri = annotation_gff,
             filename = "annotation.gff.gz",
@@ -108,78 +112,71 @@ workflow vkd {
         index = "fai",
     }
 
-    call normalize.variant as gstd {
+    call normalize.variant as norm_gstd {
         vcf_path = dl_gstd.result.file,
         reference_path = dl_reference.result.file,
     }
 
-    scatter (dataset_path in as_pairs(query_vcf_uri)) {
+    scatter (chromosome in target_chromosome) {
+        call extract.chromosome as split_gstd_chr {
+            variant = norm_gstd.result,
+            target_chromosome = chromosome_name,
+        }
+
+        FileWithIndex gstd_chr = split_gstd_chr.result
+        String chromosome_name = chromosome
+    }
+
+    scatter (dataset_pair in as_pairs(query_vcf_uri)) {
         call download.file_with_index as dl_query {
-            uri = dataset_path.right,
-            filename = dataset_path.left + ".vcf.gz",
+            uri = dataset_pair.right,
+            filename = dataset_pair.left + ".vcf.gz",
             index = "tbi",
         }
 
-        call normalize.variant as query {
+        call normalize.variant as norm_query {
             vcf_path = dl_query.result.file,
             reference_path = dl_reference.result.file,
         }
 
-        if (select_first([
-            run_snpeff,
-        ], false)) {
-            call annotate.snpeff {
-                vcf = query.result.file,
-                dataset_name = dataset_path.left,
-            }
-        }
+        scatter (name_gstd in zip(chromosome_name, gstd_chr)) {
 
-        if (select_first([
-            run_vep,
-        ], false)) {
-            call annotate.vep {
-                vcf = query.result.file,
-                reference_genome = dl_reference.result.file,
-                dataset_name = dataset_path.left,
-                gff = select_first([
-                    gff_idx.result,
-                ]),
+            call extract.chromosome as query_chr {
+                variant = norm_query.result,
+                target_chromosome = name_gstd.left,
             }
-        }
 
-        if (compare_tool == "hap.py") {
-            call compare.happy {
-                truth = gstd.result,
-                query = query.result,
+            call run_compare.run_compare {
+                gstd = name_gstd.right,
+                reference = dl_reference.result,
                 confident_bed = dl_gstd_bed.path,
-                reference_genome = dl_reference.result,
-                output_name = dataset_path.left,
-
+                query = query_chr.result,
+                query_name = dataset_pair.left + "_" + name_gstd.left,
+                compare_tool = compare_tool,
+                run_snpeff = select_first([
+                    run_snpeff,
+                ], false),
+                run_vep = select_first([
+                    run_vep,
+                ], false),
+                gff = gff_idx.result,
             }
-        }
-        if (compare_tool != "hap.py") {
-            call compare.aardvark {
-                truth = gstd.result,
-                query = query.result,
-                confident_bed = dl_gstd_bed.path,
-                reference_genome = dl_reference.result,
-                output_name = dataset_path.left,
-            }
+
+            File query_vcf = run_compare.query_vcf
+            File query_vcf_label = run_compare.query_vcf_label
+            String dataset_name = run_compare.dataset_name
         }
 
-        File query_vcf = query.result.file
-        File query_vcf_label = if compare_tool == "hap.py" then happy.result.truth else aardvark.result.truth
-        String dataset_name = dataset_path.left
-    }
+        call compare.merge {
+            query = query_vcf,
+            query_label = query_vcf_label,
+            dataset = dataset_name,
+            clinvar = clinvar.result.file,
+        }
 
-    call compare.merge {
-        query = query_vcf,
-        query_label = query_vcf_label,
-        dataset = dataset_name,
-        clinvar = clinvar.result.file,
     }
 
     output {
-        File dataframe = merge.dataframe
+        Array[File] dataframe = merge.dataframe
     }
 }

@@ -87,7 +87,7 @@ task file_with_index {
 
     requirements {
         container: "richardjkendall/curl-bash@sha256:0744963ae76a3be377669124976cd9691b9a76f33e80cdbd916b38d9c824be88"
-}
+    }
 }
 
 task clinvar {
@@ -130,7 +130,6 @@ task clinvar {
     }
 
     requirements {
-              container: "richardjkendall/curl-bash@sha256:0744963ae76a3be377669124976cd9691b9a76f33e80cdbd916b38d9c824be88"
-
+        container: "richardjkendall/curl-bash@sha256:0744963ae76a3be377669124976cd9691b9a76f33e80cdbd916b38d9c824be88"
     }
 }

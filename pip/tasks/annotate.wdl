@@ -40,7 +40,8 @@ task snpeff {
     requirements {
         container: "quay.io/biocontainers/snpeff:5.3.0a--hdfd78af_1"
         cpu: 1
-    }
+      memory: "8 GiB"
+}
 }
 
 task vep {
@@ -91,5 +92,6 @@ task vep {
     requirements {
         container: "quay.io/biocontainers/ensembl-vep:115.2--pl5321h2a3209d_1"
         cpu: 4
-    }
+      memory: "8 GiB"
+}
 }
