@@ -131,9 +131,9 @@ def get_parser() -> argparse.ArgumentParser:
     )
     serve_parser.add_argument(
         "-i",
-        "--input-path",
+        "--input-directory",
         type=pathlib.Path,
-        help="Result of merge data",
+        help="Directory where result merge by chromosome are store",
         required=True,
     )
     serve_parser.add_argument(
@@ -189,17 +189,23 @@ def merge(opts: argparse.Namespace) -> int:
         veps,
     ):
         lf = reader.vcf2lazyframe(query)
-        label_lf = reader.vcf2lazyframe(label).select(["chr", "position", "ref", "alt", "format_bd"])
+        label_lf = reader.vcf2lazyframe(label).select(
+            ["chr", "position", "ref", "alt", "format_bd"],
+        )
 
         lf = lf.join(label_lf, on=["chr", "position", "ref", "alt"], how="left")
 
         if snpeff is not None:
-            annot_lf = reader.vcf2lazyframe(snpeff).select(["chr", "position", "ref", "alt", "info_ANN"])
+            annot_lf = reader.vcf2lazyframe(snpeff).select(
+                ["chr", "position", "ref", "alt", "info_ANN"],
+            )
             annot_lf = reader.parse_info_ann(annot_lf, "snpeff")
             lf = lf.join(annot_lf, on=["chr", "position", "ref", "alt"], how="left")
 
         if vep is not None:
-            annot_lf = reader.vcf2lazyframe(snpeff).select(["chr", "position", "ref", "alt", "info_ANN"])
+            annot_lf = reader.vcf2lazyframe(snpeff).select(
+                ["chr", "position", "ref", "alt", "info_ANN"],
+            )
             annot_lf = reader.parse_info_ann(annot_lf, "vep")
             lf = lf.join(annot_lf, on=["chr", "position", "ref", "alt"], how="left")
 
@@ -211,7 +217,9 @@ def merge(opts: argparse.Namespace) -> int:
         else:
             for col, dtypes in schema.items():
                 if col in schema_global and schema_global[col] != dtypes:
-                    logger.info(f"drop {col} old dtypes {dtypes} new dtypes {schema_global[col]}")
+                    logger.info(
+                        f"drop {col} old dtypes {dtypes} new dtypes {schema_global[col]}",
+                    )
                     del schema_global[col]
 
         lfs.append(lf)
@@ -220,8 +228,12 @@ def merge(opts: argparse.Namespace) -> int:
 
     if opts.clinvar_path is not None:
         clinvar_lf = reader.vcf2lazyframe(opts.clinvar_path, with_genotype=False)
-        clinvar_lf = clinvar_lf.with_columns(chr=polars.col("chr").str.replace(r"^", "chr"))
-        clinvar_lf = clinvar_lf.rename({col: col.replace("info_", "clinvar_") for col in clinvar_lf.collect_schema()})
+        clinvar_lf = clinvar_lf.with_columns(
+            chr=polars.col("chr").str.replace(r"^", "chr"),
+        )
+        clinvar_lf = clinvar_lf.rename(
+            {col: col.replace("info_", "clinvar_") for col in clinvar_lf.collect_schema()},
+        )
 
         lf = lf.join(clinvar_lf, on=["chr", "position", "ref", "alt"], how="left")
 
@@ -261,7 +273,7 @@ vkd.streamlit.main({enable_page})
 import vkd.streamlit
 import vkd.streamlit.{page}
 
-vkd.streamlit.{page}.{page}("{opts.input_path}", "{opts.config_path}")
+vkd.streamlit.{page}.{page}("{opts.input_directory}", "{opts.config_path}")
 """,
                 file=fh,
             )

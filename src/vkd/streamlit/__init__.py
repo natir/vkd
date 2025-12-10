@@ -3,6 +3,7 @@
 # std import
 from __future__ import annotations
 
+import os
 import pathlib
 import typing
 
@@ -48,16 +49,17 @@ def dataset_name(_lf: polars.LazyFrame) -> list[str]:
     return _lf.select("dataset").unique().sort("dataset").collect().get_column("dataset").to_list()
 
 
-def chr_list(_lf: polars.LazyFrame) -> list[str]:
-    """Extract chromosome list from LazyFrame."""
-    return (
-        _lf.select("chr")
-        .unique()
-        .sort(polars.col("chr").str.extract(r"(\d+)").cast(polars.Int32()))
-        .collect()
-        .get_column("chr")
-        .to_list()
-    )
+@streamlit.cache_data
+def chr_list(input_directory: pathlib.Path) -> list[str]:
+    """Extract chromosome from input directory."""
+    result = []
+
+    with os.scandir(input_directory) as dir_scan:
+        for entry in dir_scan:
+            if entry.is_file() and entry.name.endswith(".parquet"):
+                result.append(entry.name.split(".")[0])
+
+    return result
 
 
 @streamlit.cache_data

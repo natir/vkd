@@ -21,21 +21,23 @@ if typing.TYPE_CHECKING:
     # project import
 
 
-def by_chr(input_path: pathlib.Path, config_path: pathlib.Path) -> None:
+def by_chr(input_directory: pathlib.Path, config_path: pathlib.Path) -> None:
     """Principal function of by_chr page."""
-    lf = polars.scan_parquet(input_path)
-
     config = vkd.streamlit.read_config(config_path)
+
+    chr_name_selector = streamlit.sidebar.selectbox(
+        "Chromosome",
+        vkd.streamlit.chr_list(input_directory),
+    )
+
+    lf = polars.scan_parquet(input_directory / f"{chr_name_selector}.parquet")
     lf = lf.select(config["select_column"])
 
     dataset_name_selector = streamlit.sidebar.selectbox(
         "Dataset name",
         vkd.streamlit.dataset_name(lf),
     )
-    chr_name_selector = streamlit.sidebar.selectbox(
-        "Chromosome",
-        vkd.streamlit.chr_list(lf),
-    )
+
     subsample_selector = streamlit.sidebar.slider(
         "fraction of dataset",
         min_value=1,

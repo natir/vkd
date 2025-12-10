@@ -3,6 +3,7 @@
 # std import
 from __future__ import annotations
 
+import os
 import typing
 
 # 3rd party import
@@ -22,12 +23,19 @@ if typing.TYPE_CHECKING:
     # project import
 
 
-def generic(input_path: pathlib.Path, config_path: pathlib.Path) -> None:
+def generic(input_directory: pathlib.Path, config_path: pathlib.Path) -> None:
     """Principal function of generic page."""
-    lf = polars.scan_parquet(input_path)
-
     config = vkd.streamlit.read_config(config_path)
-    lf = lf.select(config["select_column"])
+
+    lfs = []
+    with os.scandir(input_directory) as dir_scan:
+        for entry in dir_scan:
+            if entry.is_file() and entry.name.endswith(".parquet"):
+                lfs.append(
+                    polars.scan_parquet(entry.path).select(config["select_column"]),
+                )
+
+    lf = polars.concat(lfs)
 
     dataset_name_selector = streamlit.sidebar.selectbox(
         "dataset",
@@ -43,7 +51,7 @@ def generic(input_path: pathlib.Path, config_path: pathlib.Path) -> None:
         altair.Chart(count_by_chr)
         .mark_line()
         .encode(
-            altair.X("chr").sort(vkd.streamlit.chr_list(lf)).title(vkd.streamlit.axis_title(config, "chr")),
+            altair.X("chr").sort(vkd.streamlit.chr_list(input_directory)).title(vkd.streamlit.axis_title(config, "chr")),
             altair.Y("len").scale(type="log").title(vkd.streamlit.axis_title(config, "len")),
             altair.Color("format_bd").title(
                 vkd.streamlit.axis_title(config, "format_bd"),
