@@ -40,8 +40,8 @@ task snpeff {
     requirements {
         container: "quay.io/biocontainers/snpeff:5.3.0a--hdfd78af_1"
         cpu: 1
-      memory: "8 GiB"
-}
+        memory: "8 GiB"
+    }
 }
 
 task vep {
@@ -81,8 +81,9 @@ task vep {
 
     command <<<
         mkdir -p /root/.vep/homo_sapiens/115
-        vep -i "~{vcf}" --fork 4 --vcf --vcf_info_field ANN --cache --offline --gff "~{gff.file
-            }" --fasta "~{reference_genome}" --compress_output gzip -o "~{dataset_name}_vep.vcf.gz"
+        vep -i "~{vcf}" --fork 4 --format vcf --vcf --vcf_info_field ANN --cache --offline --gff "~{
+            gff.file}" --fasta "~{reference_genome}" --compress_output gzip -o "~{
+            dataset_name}_vep.vcf.gz"
     >>>
 
     output {
@@ -92,6 +93,6 @@ task vep {
     requirements {
         container: "quay.io/biocontainers/ensembl-vep:115.2--pl5321h2a3209d_1"
         cpu: 4
-      memory: "8 GiB"
-}
+        memory: "8 GiB"
+    }
 }

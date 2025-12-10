@@ -142,6 +142,9 @@ task merge {
         dataset: {
             help: "List of name associate to vcf query.",
         }
+        output_name: {
+            help: "Filename of output.",
+        }
         clinvar: {
             help: "Clinvar annotation vcf file",
         }
@@ -157,6 +160,7 @@ task merge {
         Array[File] query
         Array[File] query_label
         Array[String] dataset
+        String output_name
         File? clinvar
         Array[File]? snpeff
         Array[File]? vep
@@ -177,11 +181,11 @@ task merge {
         # shellcheck disable=SC2086
         # string are build by task
         vkd --threads 8 merge -n ~{sep(" ", dataset)} -q ~{sep(" ", query)} -Q ~{sep(" ", query_label
-             )} ~{clinvar_path} ~{snpeff_str} ~{vep_str} -o merge.parquet
+             )} ~{clinvar_path} ~{snpeff_str} ~{vep_str} -o "~{output_name}.parquet"
     >>>
 
     output {
-        File dataframe = "merge.parquet"
+        File dataframe = output_name + ".parquet"
     }
 
     requirements {

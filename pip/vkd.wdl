@@ -139,10 +139,15 @@ workflow vkd {
             reference_path = dl_reference.result.file,
         }
 
-        scatter (name_gstd in zip(chromosome_name, gstd_chr)) {
+        FileWithIndex query_file = norm_query.result
+        String query_name = dataset_pair.left
+    }
 
-            call extract.chromosome as query_chr {
-                variant = norm_query.result,
+    scatter (name_gstd in zip(chromosome_name, gstd_chr)) {
+        scatter (query_pair in zip(query_file, query_name)) {
+
+          call extract.chromosome as query_chr {
+                variant = query_pair.left,
                 target_chromosome = name_gstd.left,
             }
 
@@ -151,7 +156,7 @@ workflow vkd {
                 reference = dl_reference.result,
                 confident_bed = dl_gstd_bed.path,
                 query = query_chr.result,
-                query_name = dataset_pair.left + "_" + name_gstd.left,
+                query_name = query_pair.right + "_" + name_gstd.left,
                 compare_tool = compare_tool,
                 run_snpeff = select_first([
                     run_snpeff,
@@ -165,13 +170,16 @@ workflow vkd {
             File query_vcf = run_compare.query_vcf
             File query_vcf_label = run_compare.query_vcf_label
             String dataset_name = run_compare.dataset_name
+            String chr_name_out = name_gstd.left
         }
 
         call compare.merge {
             query = query_vcf,
             query_label = query_vcf_label,
             dataset = dataset_name,
+            output_name = chr_name_out[0],
             clinvar = clinvar.result.file,
+
         }
 
     }

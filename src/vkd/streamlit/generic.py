@@ -30,7 +30,7 @@ def generic(input_directory: pathlib.Path, config_path: pathlib.Path) -> None:
     lfs = []
     with os.scandir(input_directory) as dir_scan:
         for entry in dir_scan:
-            if entry.is_file() and entry.name.endswith(".parquet"):
+            if entry.is_file() and entry.name.endswith(".parquet") and entry.stat().st_size > 0:
                 lfs.append(
                     polars.scan_parquet(entry.path).select(config["select_column"]),
                 )

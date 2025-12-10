@@ -9,11 +9,8 @@ select_column = [
 	      "format_gt",
 	      "format_bd",
 	      "format_gq",
-	      "format_ri",
-	      "format_oa",
 	      "format_adall",
 	      "format_ad",
-	      "format_ea",
 ]
 
 [alias]

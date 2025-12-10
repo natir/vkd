@@ -279,8 +279,9 @@ vkd.streamlit.main({enable_page})
                 f"""import vkd
 import vkd.streamlit
 import vkd.streamlit.{page}
+import pathlib
 
-vkd.streamlit.{page}.{page}("{opts.input_directory}", "{opts.config_path}")
+vkd.streamlit.{page}.{page}(pathlib.Path("{opts.input_directory}"), pathlib.Path("{opts.config_path}"))
 """,
                 file=fh,
             )
