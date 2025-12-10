@@ -104,6 +104,8 @@ workflow run_compare {
     output {
         File query_vcf = query.file
         File query_vcf_label = if compare_tool == "hap.py" then happy.result.truth else aardvark.result.truth
-        String dataset_name = query_name
+      String dataset_name = query_name
+      File? snpeff_vcf = snpeff.annotated
+      File? vep_vcf = vep.annotated
     }
 }

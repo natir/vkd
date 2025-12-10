@@ -156,7 +156,7 @@ workflow vkd {
                 reference = dl_reference.result,
                 confident_bed = dl_gstd_bed.path,
                 query = query_chr.result,
-                query_name = query_pair.right + "_" + name_gstd.left,
+                query_name = query_pair.right,
                 compare_tool = compare_tool,
                 run_snpeff = select_first([
                     run_snpeff,
@@ -171,6 +171,8 @@ workflow vkd {
             File query_vcf_label = run_compare.query_vcf_label
             String dataset_name = run_compare.dataset_name
             String chr_name_out = name_gstd.left
+	    File? snpeff_vcf = run_compare.snpeff_vcf
+	    File? vep_vcf = run_compare.vep_vcf
         }
 
         call compare.merge {
@@ -179,7 +181,8 @@ workflow vkd {
             dataset = dataset_name,
             output_name = chr_name_out[0],
             clinvar = clinvar.result.file,
-
+	  snpeff = snpeff_vcf,
+	vep = vep_vcf,
         }
 
     }

@@ -162,20 +162,17 @@ task merge {
         Array[String] dataset
         String output_name
         File? clinvar
-        Array[File]? snpeff
-        Array[File]? vep
+        Array[File?] snpeff
+        Array[File?] vep
     }
 
     String clinvar_path = if defined(clinvar) then "-c " + select_first([
         clinvar,
     ]) else ""
 
-    String snpeff_str = if defined(snpeff) then "-s " + sep(" ", select_first([
-        snpeff,
-    ])) else ""
-    String vep_str = if defined(vep) then "-v " + sep(" ", select_first([
-        vep,
-    ])) else ""
+    String snpeff_str = if length(snpeff) > 0 then "-s "+sep(" ", snpeff) else ""
+    String vep_str = if length(vep) > 0 then "-v "+sep(" ", vep) else ""
+
 
     command <<<
         # shellcheck disable=SC2086
