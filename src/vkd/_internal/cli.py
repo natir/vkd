@@ -191,22 +191,23 @@ def merge(opts: argparse.Namespace) -> int:
         lf = reader.vcf2lazyframe(query)
         if lf is None:
             continue
+        lf = typing.cast("polars.LazyFrame", lf)
 
-        label_lf = reader.vcf2lazyframe(label).select(
+        label_lf = typing.cast("polars.LazyFrame", reader.vcf2lazyframe(label)).select(
             ["chr", "position", "ref", "alt", "format_bd"],
         )
 
         lf = lf.join(label_lf, on=["chr", "position", "ref", "alt"], how="left")
 
         if snpeff is not None:
-            annot_lf = reader.vcf2lazyframe(snpeff).select(
+            annot_lf = typing.cast("polars.LazyFrame", reader.vcf2lazyframe(snpeff)).select(
                 ["chr", "position", "ref", "alt", "info_ANN"],
             )
             annot_lf = reader.parse_info_ann(annot_lf, "snpeff")
             lf = lf.join(annot_lf, on=["chr", "position", "ref", "alt"], how="left")
 
         if vep is not None:
-            annot_lf = reader.vcf2lazyframe(snpeff).select(
+            annot_lf = typing.cast("polars.LazyFrame", reader.vcf2lazyframe(snpeff)).select(
                 ["chr", "position", "ref", "alt", "info_ANN"],
             )
             annot_lf = reader.parse_info_ann(annot_lf, "vep")
@@ -228,13 +229,15 @@ def merge(opts: argparse.Namespace) -> int:
         lfs.append(lf)
 
     if not lfs:
-        open(opts.output_path, "w")
+        with open(opts.output_path, "w"):
+            pass
+
         return 0
 
     lf = polars.concat(lfs) if schema_global is None else polars.concat([lf.select(schema_global.keys()) for lf in lfs])
 
     if opts.clinvar_path is not None:
-        clinvar_lf = reader.vcf2lazyframe(opts.clinvar_path, with_genotype=False)
+        clinvar_lf = typing.cast("polars.LazyFrame", reader.vcf2lazyframe(opts.clinvar_path, with_genotype=False))
         clinvar_lf = clinvar_lf.with_columns(
             chr=polars.col("chr").str.replace(r"^", "chr"),
         )
@@ -260,7 +263,7 @@ def serve(opts: argparse.Namespace) -> int:
     tmp_dir = tempfile.TemporaryDirectory()
     tmp_path = pathlib.Path(tmp_dir.name)
 
-    enable_page = ["generic", "by_chr"]
+    enable_page = ["generic", "by_chr", "annotation"]
 
     main_file_path = tmp_path / "main.py"
     with open(main_file_path, "w") as fh:

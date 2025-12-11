@@ -23,7 +23,7 @@ def vcf2lazyframe(
     path: pathlib.Path,
     *,
     with_genotype: bool = True,
-) -> polars.LazyFrame:
+) -> polars.LazyFrame | None:
     """Parse vcf information of input and generate a polars.LazyFrame."""
     new_columns = [
         "chr",

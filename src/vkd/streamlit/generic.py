@@ -51,7 +51,9 @@ def generic(input_directory: pathlib.Path, config_path: pathlib.Path) -> None:
         altair.Chart(count_by_chr)
         .mark_line()
         .encode(
-            altair.X("chr").sort(vkd.streamlit.chr_list(input_directory)).title(vkd.streamlit.axis_title(config, "chr")),
+            altair.X("chr")
+            .sort(vkd.streamlit.chr_list(input_directory))
+            .title(vkd.streamlit.axis_title(config, "chr")),
             altair.Y("len").scale(type="log").title(vkd.streamlit.axis_title(config, "len")),
             altair.Color("format_bd").title(
                 vkd.streamlit.axis_title(config, "format_bd"),
