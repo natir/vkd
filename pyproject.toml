@@ -35,7 +35,8 @@ dependencies = [
 
 [project.optional-dependencies]
 web = [
-    "streamlit==1.50"
+    "streamlit==1.50",
+    "altair-upset @ git+https://github.com/edmundmiller/altair-upset.git",
 ]
 
 [project.urls]

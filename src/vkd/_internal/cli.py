@@ -263,7 +263,7 @@ def serve(opts: argparse.Namespace) -> int:
     tmp_dir = tempfile.TemporaryDirectory()
     tmp_path = pathlib.Path(tmp_dir.name)
 
-    enable_page = ["generic", "by_chr", "annotation"]
+    enable_page = ["generic"]  # , "by_chr", "annotation"]
 
     main_file_path = tmp_path / "main.py"
     with open(main_file_path, "w") as fh:

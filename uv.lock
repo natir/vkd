@@ -25,6 +25,15 @@ wheels = [
 ]
 
 [[package]]
+name = "altair-upset"
+version = "0.5.0"
+source = { git = "https://github.com/edmundmiller/altair-upset.git#373b1f029dffe010c07af35522c8fb668d28013c" }
+dependencies = [
+    { name = "altair" },
+    { name = "pandas" },
+]
+
+[[package]]
 name = "ansimarkup"
 version = "1.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -2510,6 +2519,7 @@ dependencies = [
 
 [package.optional-dependencies]
 web = [
+    { name = "altair-upset" },
     { name = "streamlit" },
 ]
 
@@ -2547,6 +2557,7 @@ maintain = [
 
 [package.metadata]
 requires-dist = [
+    { name = "altair-upset", marker = "extra == 'web'", git = "https://github.com/edmundmiller/altair-upset.git" },
     { name = "polars" },
     { name = "streamlit", marker = "extra == 'web'", specifier = "==1.50" },
     { name = "xopen" },
