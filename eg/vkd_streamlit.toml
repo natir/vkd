@@ -3,16 +3,43 @@ select_column = [
 	      "position",
 	      "ref",
 	      "alt",
-	      "qual",
 	      "dataset",
+	      "qual",
 	      "format_dp",
 	      "format_gt",
 	      "format_bd",
 	      "format_gq",
 	      "format_adall",
 	      "format_ad",
+	      "snpeff_effect",
+	      "snpeff_impact",
+	      "snpeff_feature",
+	      "vep_effect",
+	      "vep_impact",
+	      "vep_feature",
+]
+
+
+
+altair_scale = [
+	     "linear",
+	     "log",
+	     "pow",
+             "sqrt",
+             "symlog",
+             "identity",
+             "sequential",
+#             "time",
+#             "utc",
+             "quantile",
+             "quantize",
+             "threshold",
+             "bin-ordinal",
+             "ordinal",
+             "point",
+             "band",
 ]
 
 [alias]
-format_bd = "label"
+format_bd = "variant label"
 format_dp = "coverage"

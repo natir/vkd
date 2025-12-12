@@ -26,18 +26,42 @@ def annotation(input_directory: pathlib.Path, config_path: pathlib.Path) -> None
     """Show information related to variant status and annotation."""
     config = vkd.streamlit.read_config(config_path)
 
-    chromosome_selector = streamlit.sidebar.selectbox("chromsome", vkd.streamlit.chr_list(input_directory))
+    chr_name_selector = streamlit.sidebar.selectbox(
+        "Chromosome",
+        vkd.streamlit.scan_chr_list(input_directory),
+    )
+    lf = vkd.streamlit.read_parquet(input_directory, chr_name_selector, config)
 
-    lf = polars.scan_parquet(input_directory / f"{chromosome_selector}.parquet")
-    schema = lf.collect_schema()
+    dataset_name_selector = streamlit.sidebar.selectbox(
+        "Dataset name",
+        vkd.streamlit.extract_dataset_name(lf, config),
+    )
 
-    dataset_name_selector = streamlit.sidebar.selectbox("dataset", vkd.streamlit.dataset_name(lf))
-    lf = lf.filter(polars.col("dataset") == dataset_name_selector)
+    subsample_selector = streamlit.sidebar.slider(
+        "fraction of dataset",
+        min_value=1,
+        max_value=100,
+        value=1,
+    )
 
-    annotator_selector = streamlit.sidebar.selectbox("annotator", _variant_annotator(schema))
-    lf = lf.select(config["select_column"] + _column_start_by(schema, annotator_selector))
+    df = vkd.streamlit.filter_and_collect(
+        lf,
+        [
+            (config["alias"]["dataset"], dataset_name_selector),
+            (config["alias"]["chr"], chr_name_selector),
+        ],
+        subsample_selector,
+    )
 
-    group = lf.collect().group_by(["format_bd", f"{annotator_selector}_impact"]).len()
+    annotator_selector = streamlit.sidebar.selectbox(
+        "annotator",
+        _variant_annotator(df.schema),
+    )
+    df = df.select([config["alias"][name] for name in config["select_column"]])
+
+    group = df.group_by(
+        [config["alias"]["format_bd"], f"{annotator_selector}_impact"],
+    ).len()
     streamlit.title("Variant type repartition")
     streamlit.altair_chart(
         altair.Chart(group)
@@ -45,19 +69,34 @@ def annotation(input_directory: pathlib.Path, config_path: pathlib.Path) -> None
         .encode(
             altair.X(f"{annotator_selector}_impact"),
             altair.Y("len").scale(type="log"),
-            altair.Color("format_bd"),
+            altair.Color(config["alias"]["format_bd"]),
         ),
     )
 
     df = lf.with_columns(
-        format_bd=polars.concat_str("format_bd", f"{annotator_selector}_impact", separator="_"),
+        format_bd=polars.concat_str(
+            config["alias"]["format_bd"],
+            f"{annotator_selector}_impact",
+            separator="_",
+        ),
     ).collect()
     streamlit.title("Violin Plot of a specific column")
     column_selector = streamlit.selectbox(
         "Column to show",
-        schema.names(),
+        vkd.streamlit.numeric_column(lf),
     )
-    streamlit.altair_chart(vkd.streamlit.violin_plot(df, config, column_selector))
+    plot = vkd.streamlit.violin_chart(
+        vkd.streamlit.one_column(
+            df,
+            column_selector,
+            [config["alias"][f"{annotator_selector}_impact"]],
+        ),
+        column_selector,
+        config["alias"][f"{annotator_selector}_impact"],
+    )
+    streamlit.altair_chart(
+        plot,
+    )
 
 
 def _variant_annotator(schema: polars.Schema) -> list[str]:
@@ -71,7 +110,3 @@ def _variant_annotator(schema: polars.Schema) -> list[str]:
         annotator.append("vep")
 
     return annotator
-
-
-def _column_start_by(schema: polars.Schema, start: str) -> list[str]:
-    return [name for name in schema.names() if name.startswith(start)]

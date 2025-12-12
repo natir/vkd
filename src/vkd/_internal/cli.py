@@ -200,14 +200,20 @@ def merge(opts: argparse.Namespace) -> int:
         lf = lf.join(label_lf, on=["chr", "position", "ref", "alt"], how="left")
 
         if snpeff is not None:
-            annot_lf = typing.cast("polars.LazyFrame", reader.vcf2lazyframe(snpeff)).select(
+            annot_lf = typing.cast(
+                "polars.LazyFrame",
+                reader.vcf2lazyframe(snpeff),
+            ).select(
                 ["chr", "position", "ref", "alt", "info_ANN"],
             )
             annot_lf = reader.parse_info_ann(annot_lf, "snpeff")
             lf = lf.join(annot_lf, on=["chr", "position", "ref", "alt"], how="left")
 
         if vep is not None:
-            annot_lf = typing.cast("polars.LazyFrame", reader.vcf2lazyframe(snpeff)).select(
+            annot_lf = typing.cast(
+                "polars.LazyFrame",
+                reader.vcf2lazyframe(snpeff),
+            ).select(
                 ["chr", "position", "ref", "alt", "info_ANN"],
             )
             annot_lf = reader.parse_info_ann(annot_lf, "vep")
@@ -237,7 +243,10 @@ def merge(opts: argparse.Namespace) -> int:
     lf = polars.concat(lfs) if schema_global is None else polars.concat([lf.select(schema_global.keys()) for lf in lfs])
 
     if opts.clinvar_path is not None:
-        clinvar_lf = typing.cast("polars.LazyFrame", reader.vcf2lazyframe(opts.clinvar_path, with_genotype=False))
+        clinvar_lf = typing.cast(
+            "polars.LazyFrame",
+            reader.vcf2lazyframe(opts.clinvar_path, with_genotype=False),
+        )
         clinvar_lf = clinvar_lf.with_columns(
             chr=polars.col("chr").str.replace(r"^", "chr"),
         )
