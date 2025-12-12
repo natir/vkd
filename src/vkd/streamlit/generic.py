@@ -3,11 +3,9 @@
 # std import
 from __future__ import annotations
 
-import os
 import typing
 
 # 3rd party import
-import altair
 import polars
 import streamlit
 
@@ -24,39 +22,34 @@ if typing.TYPE_CHECKING:
 
 
 def generic(input_directory: pathlib.Path, config_path: pathlib.Path) -> None:
-    """Principal function of generic page."""
+    """Principal function of generic page.
+
+    Aggregate generic information.
+    """
     config = vkd.streamlit.read_config(config_path)
 
-    lfs = []
-    with os.scandir(input_directory) as dir_scan:
-        for entry in dir_scan:
-            if entry.is_file() and entry.name.endswith(".parquet") and entry.stat().st_size > 0:
-                lfs.append(
-                    polars.scan_parquet(entry.path).select(config["select_column"]),
-                )
-
-    lf = polars.concat(lfs)
-
-    dataset_name_selector = streamlit.sidebar.selectbox(
-        "dataset",
-        vkd.streamlit.dataset_name(lf),
+    lf = polars.concat(
+        [
+            vkd.streamlit.read_parquet(input_directory, chr_name, config)
+            for chr_name in vkd.streamlit.scan_chr_list(input_directory)
+        ],
     )
 
-    streamlit.title("Repartition of variant by chromosome and type.")
-    count_by_chr = (
-        lf.filter(polars.col("dataset") == dataset_name_selector).group_by("chr", "format_bd").len().collect()
-    )
-
+    # Define sidebar selector
+    streamlit.title("Repartition of variant by chromosome and label.")
     streamlit.altair_chart(
-        altair.Chart(count_by_chr)
-        .mark_line()
-        .encode(
-            altair.X("chr")
-            .sort(vkd.streamlit.chr_list(input_directory))
-            .title(vkd.streamlit.axis_title(config, "chr")),
-            altair.Y("len").scale(type="log").title(vkd.streamlit.axis_title(config, "len")),
-            altair.Color("format_bd").title(
-                vkd.streamlit.axis_title(config, "format_bd"),
-            ),
+        vkd.streamlit.group_bar_chart(
+            __counts(lf, [config["alias"]["chr"], config["alias"]["format_bd"], config["alias"]["dataset"]]),
+            "len",
+            config["alias"]["format_bd"],
+            config["alias"]["dataset"],
         ),
     )
+
+    streamlit.title("Variant common between dataset.")
+
+
+@streamlit.cache_data
+def __counts(_lf: polars.LazyFrame, columns: list[str]) -> polars.DataFrame:
+    """Run a group by and count element."""
+    return _lf.group_by(columns).len().collect()

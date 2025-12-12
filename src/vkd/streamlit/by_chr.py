@@ -23,19 +23,19 @@ if typing.TYPE_CHECKING:
 
 def by_chr(input_directory: pathlib.Path, config_path: pathlib.Path) -> None:
     """Principal function of by_chr page."""
+    print("by_chr")
     config = vkd.streamlit.read_config(config_path)
 
     chr_name_selector = streamlit.sidebar.selectbox(
         "Chromosome",
-        vkd.streamlit.chr_list(input_directory),
+        vkd.streamlit.scan_chr_list(input_directory),
     )
 
-    lf = polars.scan_parquet(input_directory / f"{chr_name_selector}.parquet")
-    lf = lf.select(config["select_column"])
+    lf = vkd.streamlit.read_parquet(input_directory, chr_name_selector, config)
 
     dataset_name_selector = streamlit.sidebar.selectbox(
         "Dataset name",
-        vkd.streamlit.dataset_name(lf),
+        vkd.streamlit.extract_dataset_name(lf, config),
     )
 
     subsample_selector = streamlit.sidebar.slider(
@@ -45,18 +45,31 @@ def by_chr(input_directory: pathlib.Path, config_path: pathlib.Path) -> None:
         value=1,
     )
 
-    df = vkd.streamlit.by_chr_filtering(
+    df = filter_and_collect(
         lf,
-        dataset_name_selector,
-        chr_name_selector,
+        [
+            (config["alias"]["dataset"], dataset_name_selector),
+            (config["alias"]["chr"], chr_name_selector),
+        ],
         subsample_selector,
     )
 
     streamlit.title("Coverage by chromosome")
-    streamlit.altair_chart(vkd.streamlit.cov_by_chr(df, config))
+    streamlit.altair_chart(
+        vkd.streamlit.scatter_chart(
+            df,
+            config["alias"]["position"],
+            config["alias"]["format_dp"],
+            config["alias"]["format_bd"],
+        ),
+    )
 
     streamlit.title("Variant length")
-    streamlit.altair_chart(vkd.streamlit.variant_length(df, config))
+    streamlit.altair_chart(
+        vkd.streamlit.line_chart(
+            variant_length_histo(df, [config["alias"]["format_bd"]]), "var_len", "len", config["alias"]["format_bd"]
+        ),
+    )
 
     streamlit.title("Violin Plot of a specific column")
     column_selector = streamlit.selectbox(
@@ -64,3 +77,26 @@ def by_chr(input_directory: pathlib.Path, config_path: pathlib.Path) -> None:
         vkd.streamlit.numeric_column(lf),
     )
     streamlit.altair_chart(vkd.streamlit.violin_plot(df, config, column_selector))
+
+
+@streamlit.cache_data
+def filter_and_collect(_lf: polars.LazyFrame, cols_values: list[(str, typing.Any)], fraction: int) -> polars.DataFrame:
+    """Filter on column and collect lazyframe."""
+    return vkd.streamlit.collect_and_sample(
+        _lf.filter([polars.col(col) == value for col, value in cols_values]),
+        fraction,
+    )
+
+
+@streamlit.cache_data
+def variant_length_histo(df: polars.DataFrame, keep_col: list[str]) -> polars.DataFrame:
+    """Compute and collect variant length."""
+    return (
+        df.with_columns(
+            var_len=polars.col("ref").str.len_chars().cast(polars.Int64)
+            - polars.col("alt").str.len_chars().cast(polars.Int64),
+        )
+        .group_by("chr", "position", "ref", "alt", "var_len", *keep_col)
+        .len()
+        .select(*keep_col, "var_len", "len")
+    )

@@ -2544,6 +2544,9 @@ maintain = [
     { name = "twine" },
     { name = "yore" },
 ]
+web = [
+    { name = "streamlit" },
+]
 
 [package.metadata]
 requires-dist = [
@@ -2584,6 +2587,7 @@ maintain = [
     { name = "twine", specifier = ">=5.1" },
     { name = "yore", specifier = ">=0.3.3" },
 ]
+web = [{ name = "streamlit", specifier = "==1.50" }]
 
 [[package]]
 name = "watchdog"

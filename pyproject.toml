@@ -35,7 +35,7 @@ dependencies = [
 
 [project.optional-dependencies]
 web = [
-    "streamlit==1.50"
+    "streamlit==1.50",
 ]
 
 [project.urls]
@@ -110,6 +110,9 @@ ci = [
     # YORE: EOL 3.10: Remove line.
     "tomli>=2.0; python_version < '3.11'",
 ]
+web = [
+    "streamlit==1.50",
+]
 
 [tool.uv]
-default-groups = ["maintain", "ci", "docs"]
+default-groups = ["maintain", "ci", "docs", "web"]

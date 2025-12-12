@@ -3,8 +3,8 @@ select_column = [
 	      "position",
 	      "ref",
 	      "alt",
-	      "qual",
 	      "dataset",
+	      "qual",
 	      "format_dp",
 	      "format_gt",
 	      "format_bd",
@@ -14,5 +14,5 @@ select_column = [
 ]
 
 [alias]
-format_bd = "label"
+format_bd = "variant label"
 format_dp = "coverage"

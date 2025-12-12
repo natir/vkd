@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 import os
-import pathlib
 import typing
 
 # 3rd party import
@@ -34,145 +33,131 @@ def main(enable_pages: list[str]) -> None:
     pages.run()
 
 
-def read_config(config: pathlib.Path) -> dict[str, typing.Any]:
+def read_config(config_path: pathlib.Path) -> dict[str, typing.Any]:
     """Read configuration file."""
-    with open(config, "rb") as fh:
-        return tomllib.load(fh)
+    with open(config_path, "rb") as fh:
+        config = tomllib.load(fh)
+
+    config["select_column"].extend(
+        [
+            col_name
+            for col_name in ["chr", "position", "ref", "alt", "dataset"]
+            if col_name not in config["select_column"]
+        ],
+    )
+
+    config["alias"].update(
+        {key: key for key in config["select_column"] if key not in config["alias"]},
+    )
+
+    return config
 
 
-def axis_title(config: dict[str, typing.Any], col_name: str) -> str:
-    """Return axis with alias if set."""
-    return config["alias"].get(col_name, col_name)
+def read_parquet(input_directory: pathlib.Path, chr_name: str, config: dict[str, typing.Any]) -> polars.LazyFrame:
+    """Read a parquet file in polars.LazyFrame and apply change."""
+    lf = polars.scan_parquet(input_directory / f"{chr_name}.parquet")
+
+    lf = lf.select(config["select_column"])
+    lf = lf.rename({key: name for key, name in config["alias"].items() if key in config["alias"]})
+
+    return lf.unique()
 
 
-def dataset_name(_lf: polars.LazyFrame) -> list[str]:
+def _column_start_by(schema: polars.Schema, start: str) -> list[str]:
+    return [name for name in schema.names() if name.startswith(start)]
+
+
+def extract_dataset_name(_lf: polars.LazyFrame, config: dict[str, typing.Any]) -> list[str]:
     """Extract list of dataset in LazyFrame."""
-    return _lf.select("dataset").unique().sort("dataset").collect().get_column("dataset").to_list()
+    return (
+        _lf.select(config["alias"]["dataset"])
+        .unique()
+        .sort(config["alias"]["dataset"])
+        .collect()
+        .get_column(config["alias"]["dataset"])
+        .to_list()
+    )
 
 
-@streamlit.cache_data
-def chr_list(input_directory: pathlib.Path) -> list[str]:
+def scan_chr_list(input_directory: pathlib.Path) -> typing.Iterator[str]:
     """Extract chromosome from input directory."""
-    result = []
-
     with os.scandir(input_directory) as dir_scan:
         for entry in dir_scan:
-            if entry.is_file() and entry.name.endswith(".parquet"):
-                result.append(entry.name.split(".")[0])
-
-    return result
+            if entry.is_file() and entry.name.endswith(".parquet") and entry.stat().st_size != 0:
+                yield entry.name.split(".")[0]
 
 
-@streamlit.cache_data
 def numeric_column(_lf: polars.LazyFrame) -> list[str]:
     """Generate plotable numeric value."""
-    return [
-        name
-        for name, col_type in dict(_lf.collect_schema()).items()
-        if col_type
-        in [
-            polars.Float32,
-            polars.Float64,
-            polars.Int8,
-            polars.Int16,
-            polars.Int32,
-            polars.Int64,
-            polars.Int128,
-            polars.UInt8,
-            polars.UInt16,
-            polars.UInt32,
-            polars.UInt64,
-        ]
-    ]
+    return [name for name, col_type in dict(_lf.collect_schema()).items() if col_type.is_numeric()]
 
 
-@streamlit.cache_data
-def by_chr_filtering(
+def collect_and_sample(
     _lf: polars.LazyFrame,
-    dataset: str,
-    chr_name: str,
     fraction: int,
 ) -> polars.DataFrame:
-    """Filter data in LazyFrame and collect it in dataframe."""
-    return (
-        _lf.filter(polars.col("chr") == chr_name)
-        .filter(polars.col("dataset") == dataset)
-        .collect()
-        .sample(fraction=fraction / 100)
-    )
+    """Sample a polars.LazyFrame and collect it in polars.DataFrame."""
+    return _lf.collect().sample(fraction=fraction / 100)
 
 
-@streamlit.cache_data
-def cov_by_chr(df: polars.DataFrame, config: dict[str, typing.Any]) -> altair.Chart:
-    """Generate plot coverage of each variant."""
-    df = df.select("position", "format_dp", "format_bd")
-    return (
-        altair.Chart(df)
-        .mark_point(shape="circle", filled=True, size=10)
-        .encode(
-            x=altair.X("position").title(axis_title(config, "position")),
-            y=altair.Y("format_dp").title(axis_title(config, "format_dp")),
-            color=altair.Color("format_bd").title(axis_title(config, "format_bd")),
-        )
-    )
-
-
-@streamlit.cache_data
-def violin_plot(
-    df: polars.DataFrame,
-    config: dict[str, typing.Any],
-    column: str,
-) -> altair.Chart:
-    """Generate a violin plot of selected column."""
-    df = df.select(column, "format_bd")
+def group_bar_chart(df: polars.DataFrame, value: str, color: str, column: str) -> altair.Chart:
+    """Generate an altair bar chart."""
+    selection = altair.selection_point(fields=[color], bind="legend")
 
     return (
         altair.Chart(df)
-        .transform_density(
-            column,
-            as_=[column, "density"],
-            groupby=["format_bd"],
-        )
-        .mark_area(orient="horizontal")
+        .mark_bar()
         .encode(
-            altair.X("density:Q")
-            .stack("center")
-            .impute(None)
-            .title(None)
-            .axis(labels=False, values=[0], grid=False, ticks=True)
-            .title(axis_title(config, column)),
-            altair.Y(column).title(axis_title(config, column)),
-            altair.Color("format_bd").title(axis_title(config, "format_bd")),
-            altair.Column("format_bd")
-            .spacing(0)
-            .header(titleOrient="bottom", labelOrient="bottom", labelPadding=0)
-            .title(axis_title(config, "format_bd")),
+            x=altair.X(color),
+            y=altair.Y(value),
+            color=altair.Color(color),
+            column=altair.Column(column),
+            opacity=altair.when(selection).then(altair.value(1)).otherwise(altair.value(0.1)),
         )
-        .configure_view(
-            stroke=None,
+        .add_params(
+            selection,
         )
     )
 
 
-@streamlit.cache_data
-def variant_length(df: polars.DataFrame, config: dict[str, typing.Any]) -> altair.Chart:
-    """Generate a plot of variant length."""
-    df = (
-        df.select("ref", "alt", "format_bd")
-        .with_columns(
-            variant_length=polars.col("ref").str.len_chars().cast(polars.Int32)
-            - polars.col("alt").str.len_chars().cast(polars.Int32),
+def scatter_chart(df: polars.DataFrame, x: str, y: str, color: str) -> altair.Chart:
+    """Generate a scatter chart."""
+    selection = altair.selection_point(fields=[color], bind="legend")
+
+    return (
+        altair.Chart(df)
+        .mark_point(
+            size=1,
+            strokeWidth=1,
         )
-        .group_by("variant_length", "format_bd")
-        .len()
+        .encode(
+            x=altair.X(x),
+            y=altair.Y(y),
+            color=altair.Color(color),
+            opacity=altair.when(selection).then(altair.value(1)).otherwise(altair.value(0.1)),
+        )
+        .add_params(
+            selection,
+        )
     )
+
+
+def line_chart(df: polars.DataFrame, x: str, y: str, color: str) -> altair.Chart:
+    """Generate a line chart."""
+    print(df)
+
+    selection = altair.selection_point(fields=[color], bind="legend")
 
     return (
         altair.Chart(df)
         .mark_line()
         .encode(
-            altair.X("variant_length"),
-            altair.Y("len").scale(type="log").title(axis_title(config, "len")),
-            altair.Color("format_bd").title(axis_title(config, "format_bd")),
+            x=altair.X(x),
+            y=altair.Y(y),
+            color=altair.Color(color),
+            opacity=altair.when(selection).then(altair.value(1)).otherwise(altair.value(0.1)),
+        )
+        .add_params(
+            selection,
         )
     )

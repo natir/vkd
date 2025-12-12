@@ -35,7 +35,7 @@ def annotation(input_directory: pathlib.Path, config_path: pathlib.Path) -> None
     lf = lf.filter(polars.col("dataset") == dataset_name_selector)
 
     annotator_selector = streamlit.sidebar.selectbox("annotator", _variant_annotator(schema))
-    lf = lf.select(config["select_column"] + _column_start_by(schema, annotator_selector))
+    lf = lf.select(config["select_column"] + vkd.streamlit._column_start_by(schema, annotator_selector))
 
     group = lf.collect().group_by(["format_bd", f"{annotator_selector}_impact"]).len()
     streamlit.title("Variant type repartition")
@@ -71,7 +71,3 @@ def _variant_annotator(schema: polars.Schema) -> list[str]:
         annotator.append("vep")
 
     return annotator
-
-
-def _column_start_by(schema: polars.Schema, start: str) -> list[str]:
-    return [name for name in schema.names() if name.startswith(start)]
